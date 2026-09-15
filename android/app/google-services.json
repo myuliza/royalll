@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "771816894798",
+    "project_id": "royal-app-fundas-2026-py-6d3c9",
+    "storage_bucket": "royal-app-fundas-2026-py-6d3c9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:771816894798:android:1f9181ba06dbfaccdf6e1f",
+        "android_client_info": {
+          "package_name": "com.example.royal_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkrUAmagZY_d4q0HZLJi1xawoFU09fOu0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
