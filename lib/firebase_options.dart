@@ -41,48 +41,46 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDFxySmO0h3d12PiosbU-UCXDDOC5PLE70',
-    appId: '1:771816894798:web:da87317d8678d12cdf6e1f',
-    messagingSenderId: '771816894798',
-    projectId: 'royal-app-fundas-2026-py-6d3c9',
-    authDomain: 'royal-app-fundas-2026-py-6d3c9.firebaseapp.com',
-    storageBucket: 'royal-app-fundas-2026-py-6d3c9.firebasestorage.app',
-    measurementId: 'G-YG30LGHQ37',
+    apiKey: 'AIzaSyBf2aDGyqNQYbygayCFnp8k3Q7lvPzdddc',
+    appId: '1:381998098827:web:8b27d66dd428249630278e',
+    messagingSenderId: '381998098827',
+    projectId: 'royal-3ceec',
+    authDomain: 'royal-3ceec.firebaseapp.com',
+    storageBucket: 'royal-3ceec.firebasestorage.app',
+    measurementId: 'G-88G6QS8X0V',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCkrUAmagZY_d4q0HZLJi1xawoFU09fOu0',
-    appId: '1:771816894798:android:1f9181ba06dbfaccdf6e1f',
-    messagingSenderId: '771816894798',
-    projectId: 'royal-app-fundas-2026-py-6d3c9',
-    storageBucket: 'royal-app-fundas-2026-py-6d3c9.firebasestorage.app',
+    apiKey: 'AIzaSyC9dp4D5pWfTx4YZujjwbJVSAfu8Dp19nE',
+    appId: '1:381998098827:android:bd58d0a65a85a4a830278e',
+    messagingSenderId: '381998098827',
+    projectId: 'royal-3ceec',
+    storageBucket: 'royal-3ceec.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDQYV_rXzwyFOSE9vYRvb29LDQ8Zs6YKTo',
-    appId: '1:771816894798:ios:4b185d698054e80bdf6e1f',
-    messagingSenderId: '771816894798',
-    projectId: 'royal-app-fundas-2026-py-6d3c9',
-    storageBucket: 'royal-app-fundas-2026-py-6d3c9.firebasestorage.app',
+    apiKey: 'AIzaSyCcuGfclSas_e74MsPrUGLwiWoLWNOlh5w',
+    appId: '1:381998098827:ios:366c5b4a7f25845430278e',
+    messagingSenderId: '381998098827',
+    projectId: 'royal-3ceec',
+    storageBucket: 'royal-3ceec.firebasestorage.app',
     iosBundleId: 'com.example.royalApp',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDQYV_rXzwyFOSE9vYRvb29LDQ8Zs6YKTo',
-    appId: '1:771816894798:ios:4b185d698054e80bdf6e1f',
-    messagingSenderId: '771816894798',
-    projectId: 'royal-app-fundas-2026-py-6d3c9',
-    storageBucket: 'royal-app-fundas-2026-py-6d3c9.firebasestorage.app',
+    apiKey: 'AIzaSyCcuGfclSas_e74MsPrUGLwiWoLWNOlh5w',
+    appId: '1:381998098827:ios:366c5b4a7f25845430278e',
+    messagingSenderId: '381998098827',
+    projectId: 'royal-3ceec',
+    storageBucket: 'royal-3ceec.firebasestorage.app',
     iosBundleId: 'com.example.royalApp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDFxySmO0h3d12PiosbU-UCXDDOC5PLE70',
-    appId: '1:771816894798:web:9956b2a1c4bc3ba7df6e1f',
-    messagingSenderId: '771816894798',
-    projectId: 'royal-app-fundas-2026-py-6d3c9',
-    authDomain: 'royal-app-fundas-2026-py-6d3c9.firebaseapp.com',
-    storageBucket: 'royal-app-fundas-2026-py-6d3c9.firebasestorage.app',
-    measurementId: 'G-9VD6CKKZ91',
+    apiKey: 'AIzaSyBf2aDGyqNQYbygayCFnp8k3Q7lvPzdddc',
+    appId: '1:381998098827:web:71b767a5e39a8cae30278e',
+    messagingSenderId: '381998098827',
+    projectId: 'royal-3ceec',
+    authDomain: 'royal-3ceec.firebaseapp.com',
+    storageBucket: 'royal-3ceec.firebasestorage.app',
+    measurementId: 'G-84QJMK7VFH',
   );
 }

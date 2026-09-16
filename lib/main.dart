@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'firebase_options.dart'; // generado por `flutterfire configure`
+import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'providers/carrito_provider.dart';
-import 'screens/catalogo_screen.dart';
+import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ class RoyalApp extends StatelessWidget {
         title: 'Royal',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
-        home: const CatalogoScreen(),
+        home: const HomeScreen(),
       ),
     );
   }
