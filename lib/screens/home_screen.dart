@@ -7,6 +7,7 @@ import 'catalogo_screen.dart';
 import 'carrito_screen.dart';
 import 'faq_screen.dart';
 import 'producto_detalle_screen.dart';
+import 'empleado_login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,8 +19,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
 
-  // Cambia de pestaña de forma segura, sin depender de buscar el
-  // ancestro en el árbol de widgets.
   void _goToTab(int index) {
     setState(() => _tabIndex = index);
   }
@@ -99,6 +98,16 @@ class _HomeTab extends StatelessWidget {
       floating: true,
       snap: true,
       centerTitle: true,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.lock_outline, size: 20),
+          tooltip: 'Acceso empleado',
+onPressed: () => Navigator.push(
+  context,
+  MaterialPageRoute(builder: (_) => const EmpleadoLoginScreen()),
+),
+        ),
+      ],
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -144,7 +153,7 @@ class _HeroBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
-      height: 190,
+      constraints: const BoxConstraints(minHeight: 190),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: const LinearGradient(
