@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/cupon.dart';
 import '../providers/carrito_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 import 'checkout_screen.dart';
 
 class CarritoScreen extends StatefulWidget {
@@ -73,7 +74,17 @@ class _CarritoScreenState extends State<CarritoScreen> {
                           Text('${item.cantidad}'),
                           IconButton(
                             icon: const Icon(Icons.add_circle_outline),
-                            onPressed: () => carrito.actualizarCantidad(item.producto.id, item.cantidad + 1),
+                            onPressed: () {
+                              final ok = carrito.actualizarCantidad(item.producto.id, item.cantidad + 1);
+                              if (!ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Stock máximo de "${item.producto.nombre}" alcanzado (${item.producto.stock} disponibles).'),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                         ],
                       ),
@@ -113,7 +124,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, -2))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, -2))],
                 ),
                 child: Column(
                   children: [
@@ -141,7 +152,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
   }
 
   Widget _filaResumen(String label, int valor, {bool esTotal = false, Color? color}) {
-    final formateado = '${valor < 0 ? '-' : ''}${valor.abs().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')} Gs';
+    final formateado = '${valor < 0 ? '-' : ''}${formatPrice(valor.abs())}';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(

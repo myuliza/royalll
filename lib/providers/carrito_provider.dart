@@ -7,7 +7,7 @@ class ItemCarrito {
   int cantidad;
   ItemCarrito({required this.producto, this.cantidad = 1});
 
-  int get subtotal => producto.precio * cantidad;
+  int get subtotal => producto.precioFinal * cantidad;
 }
 
 class CarritoProvider extends ChangeNotifier {
@@ -25,13 +25,24 @@ class CarritoProvider extends ChangeNotifier {
 
   int get total => (subtotal - descuento).clamp(0, subtotal);
 
-  void agregar(Producto producto) {
+  /// Retorna true si se pudo agregar, o false si el stock es 0 o se excede el disponible.
+  bool agregar(Producto producto) {
+    if (producto.stock <= 0) {
+      return false; // Stock agotado
+    }
+
+    final actual = _items[producto.id]?.cantidad ?? 0;
+    if (actual >= producto.stock) {
+      return false; // No se puede exceder el stock disponible
+    }
+
     if (_items.containsKey(producto.id)) {
       _items[producto.id]!.cantidad++;
     } else {
       _items[producto.id] = ItemCarrito(producto: producto);
     }
     notifyListeners();
+    return true;
   }
 
   void quitar(String productoId) {
@@ -39,13 +50,22 @@ class CarritoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void actualizarCantidad(String productoId, int cantidad) {
+  /// Retorna true si se actualizó, false si excede el stock disponible.
+  bool actualizarCantidad(String productoId, int cantidad) {
     if (cantidad <= 0) {
       quitar(productoId);
-      return;
+      return true;
     }
-    _items[productoId]?.cantidad = cantidad;
+    final item = _items[productoId];
+    if (item == null) return false;
+
+    if (cantidad > item.producto.stock) {
+      return false; // Excede inventario real
+    }
+
+    item.cantidad = cantidad;
     notifyListeners();
+    return true;
   }
 
   void aplicarCupon(Cupon cupon) {

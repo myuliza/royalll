@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Royal — Catálogo de Fundas iPhone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ================= NAVBAR ================= -->
+  <header class="navbar">
+    <div class="navbar-container">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 32 32" class="crown-icon">
+            <path d="M4 23h24v2H4z" fill="#0B2545"/>
+            <path d="M5 20h22l2-13-7 5-6-8-6 8-7-5z" fill="#0B2545"/>
+            <circle cx="5" cy="7" r="1.5" fill="#0B2545"/>
+            <circle cx="16" cy="4" r="1.8" fill="#0B2545"/>
+            <circle cx="27" cy="7" r="1.5" fill="#0B2545"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">ROYAL</span>
+          <span class="brand-subtitle">IPHONE CASE STUDIO</span>
+        </div>
+      </div>
+
+      <!-- Selector de Modo: Usuario vs Empleado -->
+      <div class="mode-switch-wrapper">
+        <span class="mode-label">Modo:</span>
+        <div class="segmented-control">
+          <button id="btnModoUsuario" class="seg-btn active" data-mode="usuario">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Cliente
+          </button>
+          <button id="btnModoEmpleado" class="seg-btn" data-mode="empleado">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            Empleado
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= BANNER INFORMATIVO ================= -->
+  <section id="bannerEmpleado" class="banner-empleado hidden">
+    <div class="banner-content">
+      <span class="banner-badge">Panel Empleado</span>
+      <p>Modo de edición en tiempo real activado. Los cambios en el nombre o URL de imagen se sincronizan automáticamente con Firebase al salir del campo o presionar Enter.</p>
+    </div>
+  </section>
+
+  <!-- ================= CONTENEDOR PRINCIPAL ================= -->
+  <main class="main-container">
+    
+    <!-- BARRA LATERAL / FILTROS -->
+    <aside class="sidebar">
+      <div class="filter-card">
+        <div class="filter-header">
+          <h3>Filtros</h3>
+          <button id="btnLimpiarFiltros" class="btn-text">Restablecer</button>
+        </div>
+
+        <!-- Búsqueda por texto -->
+        <div class="filter-group">
+          <label for="inputBusqueda">Buscar funda</label>
+          <div class="input-search-wrapper">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="inputBusqueda" placeholder="Ej. Silicona, MagSafe...">
+          </div>
+        </div>
+
+        <!-- Filtro Modelo de iPhone -->
+        <div class="filter-group">
+          <label for="selectModelo">Modelo de iPhone</label>
+          <select id="selectModelo" class="custom-select">
+            <option value="todos">Todos los modelos</option>
+            <option value="iPhone 16 Pro Max">iPhone 16 Pro Max</option>
+            <option value="iPhone 16 Pro">iPhone 16 Pro</option>
+            <option value="iPhone 16">iPhone 16</option>
+            <option value="iPhone 15 Pro Max">iPhone 15 Pro Max</option>
+            <option value="iPhone 15 Pro">iPhone 15 Pro</option>
+            <option value="iPhone 15">iPhone 15</option>
+            <option value="iPhone 14 Pro Max">iPhone 14 Pro Max</option>
+            <option value="iPhone 14 Pro">iPhone 14 Pro</option>
+            <option value="iPhone 14">iPhone 14</option>
+            <option value="iPhone 13 Pro Max">iPhone 13 Pro Max</option>
+            <option value="iPhone 13">iPhone 13</option>
+          </select>
+        </div>
+
+        <!-- FILTRADO MULTICOLOR DINÁMICO (CHECKBOXES) -->
+        <div class="filter-group">
+          <div class="filter-group-title">
+            <label>Filtrar por Colores</label>
+            <span class="filter-hint">Selección múltiple</span>
+          </div>
+          <!-- Este contenedor se puebla dinámicamente desde Firebase -->
+          <div id="coloresCheckboxContainer" class="colores-checkbox-list">
+            <div class="loading-colors">Cargando colores desde Firebase...</div>
+          </div>
+        </div>
+
+        <!-- Acciones especiales para la base de datos -->
+        <div class="filter-group db-actions">
+          <label>Mantenimiento Firebase</label>
+          <button id="btnPoblarSemilla" class="btn-outline btn-full">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Poblar datos semilla (10+ fundas)
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- GRILLA DE PRODUCTOS -->
+    <section class="catalog-section">
+      <div class="catalog-header">
+        <div>
+          <h2 id="catalogoTitulo">Catálogo de Fundas</h2>
+          <p id="catalogoConteo" class="text-muted">Cargando catálogo desde Firebase...</p>
+        </div>
+        <div id="syncIndicator" class="sync-indicator">
+          <span class="sync-dot"></span> Conectado a Firebase
+        </div>
+      </div>
+
+      <!-- Estado de carga / vacío -->
+      <div id="estadoCarga" class="state-container">
+        <div class="spinner"></div>
+        <p>Sincronizando fundas en tiempo real...</p>
+      </div>
+
+      <div id="estadoVacio" class="state-container hidden">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <h3>No se encontraron fundas</h3>
+        <p>Prueba ajustando los filtros de búsqueda o colores.</p>
+      </div>
+
+      <!-- Grid de tarjetas de productos -->
+      <div id="grillaProductos" class="products-grid hidden"></div>
+    </section>
+
+  </main>
+
+  <!-- ================= POPUP / MODAL MODO USUARIO ================= -->
+  <div id="modalDetalle" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-container">
+      <button id="btnCerrarModal" class="modal-close" aria-label="Cerrar modal">&times;</button>
+      <div class="modal-body">
+        <div class="modal-image-wrapper">
+          <img id="modalImagen" src="" alt="Funda iPhone" class="modal-img">
+        </div>
+        <div class="modal-info">
+          <span id="modalCategoria" class="modal-tag">SILICONE</span>
+          <h2 id="modalNombre" class="modal-title">Funda iPhone</h2>
+          <div class="modal-price-row">
+            <span id="modalPrecio" class="modal-price">85.000 Gs</span>
+            <span id="modalPrecioOriginal" class="modal-price-original hidden"></span>
+            <span id="modalBadgeDescuento" class="modal-discount-badge hidden">-15% OFF</span>
+          </div>
+
+          <div class="modal-specs">
+            <div class="spec-item">
+              <span class="spec-label">Color:</span>
+              <div class="spec-color-wrapper">
+                <span id="modalColorDot" class="color-dot"></span>
+                <span id="modalColorNombre" class="spec-value">Negro</span>
+              </div>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Modelos compatibles:</span>
+              <div id="modalModelosList" class="modelos-chips"></div>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Disponibilidad:</span>
+              <span id="modalStock" class="stock-badge">En stock</span>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button id="btnPedirWhatsapp" class="btn-primary btn-full">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+              Consultar por WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TOAST DE NOTIFICACIÓN ================= -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- SCRIPT DE APLICACIÓN CON FIREBASE V10 SDK (MODULAR) -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

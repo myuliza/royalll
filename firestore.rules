@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Función auxiliar: verifica si el usuario autenticado tiene rol de empleado o admin
+    function isEmpleado() {
+      return request.auth != null && (
+        request.auth.token.role == 'employee' ||
+        request.auth.token.role == 'admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['employee', 'admin'])
+      );
+    }
+
+    // 1. Colección de Productos:
+    // - Lectura pública (clientes pueden navegar catálogo)
+    // - Creación, modificación (precios, stock, código de color, descuentos) y borrado: EXCLUSIVO EMPLEADOS
+    match /productos/{productoId} {
+      allow read: if true;
+      allow create, delete: if isEmpleado();
+      // Empleados pueden modificar todo; las compras de clientes sólo descuentan stock mediante transacción
+      allow update: if isEmpleado() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']) &&
+        request.resource.data.stock >= 0 &&
+        request.resource.data.stock < resource.data.stock
+      );
+    }
+
+    // 2. Colección de Cupones:
+    // - Lectura pública para validación en carrito
+    // - Modificación completa: EXCLUSIVO EMPLEADOS
+    // - Incremento atómico de usosActuales permitido al procesar compra
+    match /cupones/{codigo} {
+      allow read: if true;
+      allow update: if isEmpleado() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usosActuales']) &&
+        request.resource.data.usosActuales == resource.data.usosActuales + 1
+      );
+      allow create, delete: if isEmpleado();
+    }
+
+    // 3. Preguntas frecuentes (FAQ):
+    // - Lectura pública, escritura sólo empleados
+    match /faq/{faqId} {
+      allow read: if true;
+      allow write: if isEmpleado();
+    }
+
+    // 4. Usuarios y Roles:
+    // - Cada usuario puede leer su propio perfil para verificar rol
+    // - Asignación de roles restringida exclusivamente a administradores/empleados
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isEmpleado());
+      allow write: if isEmpleado();
+    }
+
+    // 5. Pedidos:
+    // - Clientes pueden crear pedidos
+    // - Lectura y gestión exclusiva de empleados
+    match /pedidos/{pedidoId} {
+      allow create: if true;
+      allow read, update, delete: if isEmpleado();
+    }
+  }
+}

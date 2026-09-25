@@ -1,30 +1,67 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:royal_app/main.dart';
+import 'package:royal_app/models/producto.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('Producto calcula precioFinal y descuento correctamente', () {
+    final producto = Producto(
+      id: 'test-1',
+      nombre: 'Funda iPhone 14',
+      categoria: 'solido',
+      modelosCompatibles: ['iPhone 14'],
+      precio: 100000,
+      colorHex: '#000000',
+      personalizable: false,
+      stock: 10,
+      fotosUrls: [],
+      enDescuento: true,
+      porcentajeDescuento: 20,
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(producto.precio, 100000);
+    expect(producto.precioFinal, 80000);
+    expect(producto.precioOriginalFormateado, '100.000 Gs');
+    expect(producto.precioFinalFormateado, '80.000 Gs');
+    expect(producto.precioFormateado, '80.000 Gs');
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('Producto sin descuento mantiene precio original', () {
+    final producto = Producto(
+      id: 'test-2',
+      nombre: 'Funda iPhone 15',
+      categoria: 'transparente',
+      modelosCompatibles: ['iPhone 15'],
+      precio: 85000,
+      colorHex: '#E5E7EB',
+      personalizable: false,
+      stock: 5,
+      fotosUrls: [],
+      enDescuento: false,
+      porcentajeDescuento: 0,
+    );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(producto.precioFinal, 85000);
+    expect(producto.precioFormateado, '85.000 Gs');
+  });
+
+  test('limpiarNombre elimina "funda royal" y formatea estrictamente como "Funda [Modelo]"', () {
+    expect(Producto.limpiarNombre('Funda Royal iPhone 13'), 'Funda iPhone 13');
+    expect(Producto.limpiarNombre('funda royal iPhone 14 Pro'), 'Funda iPhone 14 Pro');
+    expect(Producto.limpiarNombre('iPhone 15 Pro Max'), 'Funda iPhone 15 Pro Max');
+    expect(Producto.limpiarNombre('Funda iPhone 16'), 'Funda iPhone 16');
+  });
+
+  test('formatPrice formatea correctamente precios en guaraníes', () {
+    final p = Producto(
+      id: 'test-3',
+      nombre: 'Funda iPhone 16 Pro Max',
+      categoria: 'solido',
+      modelosCompatibles: [],
+      precio: 1500000,
+      colorHex: '#FFFFFF',
+      personalizable: false,
+      stock: 1,
+      fotosUrls: [],
+    );
+    expect(p.precioFormateado, '1.500.000 Gs');
   });
 }

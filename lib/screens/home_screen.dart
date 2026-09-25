@@ -8,6 +8,7 @@ import 'carrito_screen.dart';
 import 'faq_screen.dart';
 import 'producto_detalle_screen.dart';
 import 'empleado_login_screen.dart';
+import '../widgets/royal_logo.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedIndex: _tabIndex,
         onDestinationSelected: _goToTab,
         backgroundColor: Colors.white,
-        indicatorColor: AppColors.dorado.withOpacity(0.18),
+        indicatorColor: AppColors.dorado.withValues(alpha: 0.18),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
@@ -108,38 +109,7 @@ onPressed: () => Navigator.push(
 ),
         ),
       ],
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.dorado,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Center(
-              child: Text(
-                'R',
-                style: TextStyle(
-                  color: AppColors.azul,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'ROYAL',
-            style: TextStyle(
-              letterSpacing: 3,
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-            ),
-          ),
-        ],
-      ),
+      title: const RoyalLogo(size: 28, isLight: true),
     );
   }
 }
@@ -163,7 +133,7 @@ class _HeroBanner extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.azul.withOpacity(0.35),
+            color: AppColors.azul.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -179,7 +149,7 @@ class _HeroBanner extends StatelessWidget {
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.dorado.withOpacity(0.12),
+                color: AppColors.dorado.withValues(alpha: 0.12),
               ),
             ),
           ),
@@ -191,7 +161,7 @@ class _HeroBanner extends StatelessWidget {
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.dorado.withOpacity(0.08),
+                color: AppColors.dorado.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -205,9 +175,9 @@ class _HeroBanner extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.dorado.withOpacity(0.2),
+                    color: AppColors.dorado.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.dorado.withOpacity(0.5)),
+                    border: Border.all(color: AppColors.dorado.withValues(alpha: 0.5)),
                   ),
                   child: const Text(
                     'Nueva colección',
@@ -221,7 +191,7 @@ class _HeroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'Fundas para\niPhone',
+                  'Colección para\niPhone',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 26,
@@ -357,7 +327,7 @@ class _CatChip extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.azul.withOpacity(0.08),
+                  color: AppColors.azul.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
