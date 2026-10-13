@@ -157,6 +157,8 @@ class _SelectorImagenProductoState extends State<SelectorImagenProducto> {
             'No tenés permiso para subir imágenes. Revisá las reglas de Storage (storage.rules.propuesta).',
           'retry-limit-exceeded' => 'Se perdió la conexión mientras subía la imagen. Intentá de nuevo.',
           'quota-exceeded' => 'Se superó el espacio disponible en Firebase Storage.',
+          'bucket-not-found' || 'project-not-found' || 'no-default-bucket' =>
+            'Firebase Storage no está activado en este proyecto. Activalo desde la consola de Firebase para subir imágenes.',
           _ => 'No se pudo subir la imagen (${e.code}). Intentá de nuevo.',
         };
       });
