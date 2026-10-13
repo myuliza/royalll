@@ -68,9 +68,10 @@ class AppProductImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        headers: const {
-          'Accept': 'image/*',
-        },
+        // En web, si el servidor no permite CORS (p. ej. Firebase Storage sin configurar),
+        // se muestra con un <img> del navegador (requiere no enviar headers).
+        // En las demás plataformas no tiene efecto.
+        webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
         frameBuilder: _aparicionSuave,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;

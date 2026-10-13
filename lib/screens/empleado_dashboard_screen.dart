@@ -6,6 +6,7 @@ import '../models/producto.dart';
 import '../theme/app_theme.dart';
 import '../utils/catalogo_seeder.dart';
 import '../widgets/app_product_image.dart';
+import '../widgets/selector_imagen_producto.dart';
 import '../widgets/ui/ui.dart';
 import 'empleado/codigos_tab.dart';
 import 'empleado/ventas_tab.dart';
@@ -278,6 +279,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
   /// Diálogo dedicado e interactivo para cambiar o actualizar la foto de una funda
   Future<void> _mostrarDialogoCambiarFoto(Producto p) async {
     final urlCtrl = TextEditingController(text: p.fotoPrincipalUrl);
+    var subiendoFoto = false;
 
     await showDialog(
       context: context,
@@ -321,27 +323,39 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Ingresá o pegá la URL de la imagen:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textoSecundario),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: urlCtrl,
-                      onChanged: (_) => setDialogState(() {}),
-                      decoration: InputDecoration(
-                        hintText: 'https://...',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        suffixIcon: urlCtrl.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 16),
-                                onPressed: () {
-                                  urlCtrl.clear();
-                                  setDialogState(() {});
-                                },
-                              )
-                            : null,
+                    // Opciones "URL" o "Subir desde mi PC" (la URL subida se guarda en el mismo campo)
+                    SelectorImagenProducto(
+                      urlController: urlCtrl,
+                      onCambio: () => setDialogState(() {}),
+                      onSubiendo: (v) => setDialogState(() => subiendoFoto = v),
+                      campoUrl: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Ingresá o pegá la URL de la imagen:',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textoSecundario),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: urlCtrl,
+                            onChanged: (_) => setDialogState(() {}),
+                            decoration: InputDecoration(
+                              hintText: 'https://...',
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              suffixIcon: urlCtrl.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 16),
+                                      onPressed: () {
+                                        urlCtrl.clear();
+                                        setDialogState(() {});
+                                      },
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -387,7 +401,9 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                     backgroundColor: AppColors.dorado,
                     foregroundColor: AppColors.azul,
                   ),
-                  onPressed: () async {
+                  onPressed: subiendoFoto
+                      ? null
+                      : () async {
                     final nuevaUrl = urlCtrl.text.trim();
                     if (nuevaUrl.isEmpty || !nuevaUrl.startsWith('http')) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -425,6 +441,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
     String modeloSeleccionado = 'iPhone 16 Pro';
     String categoriaSeleccionada = 'solido';
     bool guardando = false;
+    bool subiendoFoto = false;
 
     showModalBottomSheet(
       context: context,
@@ -687,23 +704,29 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
 
                       // Campo 5: URL de la Imagen con vista previa
                       const Text(
-                        '6. URL DE LA FOTO REAL DE LA FUNDA',
+                        '6. FOTO REAL DE LA FUNDA',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textoSecundario),
                       ),
                       const SizedBox(height: 4),
-                      TextFormField(
-                        controller: fotoUrlCtrl,
-                        onChanged: (_) => setModalState(() {}),
-                        decoration: InputDecoration(
-                          hintText: 'https://...',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      // Opciones "URL" o "Subir desde mi PC" (la URL subida se guarda en el mismo campo)
+                      SelectorImagenProducto(
+                        urlController: fotoUrlCtrl,
+                        onCambio: () => setModalState(() {}),
+                        onSubiendo: (v) => setModalState(() => subiendoFoto = v),
+                        campoUrl: TextFormField(
+                          controller: fotoUrlCtrl,
+                          onChanged: (_) => setModalState(() {}),
+                          decoration: InputDecoration(
+                            hintText: 'https://...',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Ingresá la URL';
+                            if (!v.trim().startsWith('http')) return 'Debe comenzar con http o https';
+                            return null;
+                          },
                         ),
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Ingresá la URL';
-                          if (!v.trim().startsWith('http')) return 'Debe comenzar con http o https';
-                          return null;
-                        },
                       ),
                       const SizedBox(height: 8),
 
@@ -735,14 +758,16 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                                   child: CircularProgressIndicator(color: AppColors.azul, strokeWidth: 2),
                                 )
                               : const Icon(Icons.cloud_upload),
-                          label: Text(guardando ? 'Guardando en Firebase...' : 'Crear y Publicar Funda'),
+                          label: Text(guardando
+                              ? 'Guardando en Firebase...'
+                              : (subiendoFoto ? 'Esperando la imagen...' : 'Crear y Publicar Funda')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.dorado,
                             foregroundColor: AppColors.azul,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          onPressed: guardando
+                          onPressed: guardando || subiendoFoto
                               ? null
                               : () async {
                                   if (!formKey.currentState!.validate()) return;

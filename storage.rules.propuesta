@@ -1,0 +1,38 @@
+rules_version = '2';
+// ─────────────────────────────────────────────────────────────────────────────
+// REGLAS PROPUESTAS DE FIREBASE STORAGE — NO DESPLEGADAS.
+// Para publicarlas: agregar "storage": { "rules": "storage.rules" } en firebase.json,
+// copiar este archivo a storage.rules y ejecutar `firebase deploy --only storage`.
+// ─────────────────────────────────────────────────────────────────────────────
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Empleado o admin: mismo criterio que firestore.rules (claim o documento users/{uid})
+    function isEmpleado() {
+      return request.auth != null && (
+        request.auth.token.role in ['employee', 'admin'] ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['employee', 'admin']
+      );
+    }
+
+    // Fotos de productos subidas desde el panel de empleados
+    match /productos/{archivo} {
+      // Cualquiera puede ver las fotos (el catálogo es público)
+      allow read: if true;
+
+      // Solo empleados suben fotos nuevas: imágenes JPG, PNG o WEBP de hasta 5 MB
+      allow create: if isEmpleado() &&
+        request.resource.size <= 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/(jpeg|png|webp)');
+
+      // Solo empleados pueden borrar; no se reemplaza una foto existente (cada subida crea un archivo nuevo)
+      allow delete: if isEmpleado();
+      allow update: if false;
+    }
+
+    // Todo lo demás, cerrado
+    match /{todo=**} {
+      allow read, write: if false;
+    }
+  }
+}
