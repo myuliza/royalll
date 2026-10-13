@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_config.dart';
 import '../utils/formatters.dart';
 import '../providers/carrito_provider.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -34,7 +35,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       canPop: !_procesando,
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        appBar: AppBar(title: const Text('Confirmar pedido')),
+        appBar: AppBar(
+          title: const Text('Confirmar pedido'),
+          actions: const [ThemeToggleButton()],
+        ),
         body: SafeArea(
           child: Form(
             key: _formKey,

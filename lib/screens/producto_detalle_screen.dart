@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_product_image.dart';
 import 'carrito_screen.dart';
 import 'catalogo_screen.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class ProductoDetalleScreen extends StatelessWidget {
   final Producto producto;
@@ -29,7 +30,10 @@ class ProductoDetalleScreen extends StatelessWidget {
     final agotado = producto.stock <= 0;
 
     return Scaffold(
-      appBar: AppBar(title: Text(producto.nombre)),
+      appBar: AppBar(
+        title: Text(producto.nombre),
+        actions: const [ThemeToggleButton()],
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -5,6 +5,7 @@ import '../models/producto.dart';
 import '../theme/app_theme.dart';
 import '../utils/catalogo_seeder.dart';
 import '../widgets/app_product_image.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class EmpleadoDashboardScreen extends StatefulWidget {
   const EmpleadoDashboardScreen({super.key});
@@ -949,6 +950,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
               tooltip: 'Cerrar sesión',
               onPressed: _cerrarSesion,
             ),
+            const ThemeToggleButton(),
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(

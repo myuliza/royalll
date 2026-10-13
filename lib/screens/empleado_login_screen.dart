@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'empleado_dashboard_screen.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class EmpleadoLoginScreen extends StatefulWidget {
   const EmpleadoLoginScreen({super.key});
@@ -88,6 +89,7 @@ class _EmpleadoLoginScreenState extends State<EmpleadoLoginScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Acceso Empleado'),
+        actions: const [ThemeToggleButton()],
       ),
       body: Center(
         child: SingleChildScrollView(

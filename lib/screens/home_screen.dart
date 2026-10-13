@@ -8,6 +8,7 @@ import 'carrito_screen.dart';
 import 'faq_screen.dart';
 import 'empleado_login_screen.dart';
 import '../widgets/royal_logo.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -123,6 +124,7 @@ onPressed: () => Navigator.push(
   MaterialPageRoute(builder: (_) => const EmpleadoLoginScreen()),
 ),
         ),
+        const ThemeToggleButton(),
       ],
       title: RoyalLogo(size: logoSize, isLight: true, imagePath: 'assets/logo royal.png'),
     );

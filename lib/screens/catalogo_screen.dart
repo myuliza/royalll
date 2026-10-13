@@ -10,6 +10,7 @@ import '../widgets/app_product_image.dart';
 import 'producto_detalle_screen.dart';
 import 'carrito_screen.dart';
 import 'faq_screen.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class CatalogoScreen extends StatefulWidget {
   const CatalogoScreen({super.key});
@@ -508,6 +509,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
             MaterialPageRoute(builder: (_) => const CarritoScreen()),
           ),
         ),
+        const ThemeToggleButton(),
         const SizedBox(width: 6),
       ],
     );
