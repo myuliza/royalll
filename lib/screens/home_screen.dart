@@ -45,34 +45,32 @@ class HomeScreen extends StatelessWidget {
                 Breakpoints.paddingLateral(context),
                 (constraints.maxWidth - Breakpoints.anchoMaximo) / 2,
               );
-              return Scrollbar(
-                child: ListView(
-                  padding: EdgeInsets.fromLTRB(
-                      lateral, AppSpacing.xl, lateral, AppSpacing.xxl),
-                  children: [
-                    const SectionHeader(
-                      titulo: 'Inicio',
-                      subtitulo:
-                          'Fundas premium para tu iPhone: diseño, protección y estilo.',
-                      grande: true,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _TarjetasDestacadas(productos: productos),
-                    const SizedBox(height: AppSpacing.xl),
-                    _HeroBanner(onVerColeccion: () => _irCatalogo(context)),
+              return ListView(
+                padding: EdgeInsets.fromLTRB(
+                    lateral, AppSpacing.xl, lateral, AppSpacing.xxl),
+                children: [
+                  const SectionHeader(
+                    titulo: 'Inicio',
+                    subtitulo:
+                        'Fundas premium para tu iPhone: diseño, protección y estilo.',
+                    grande: true,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _TarjetasDestacadas(productos: productos),
+                  const SizedBox(height: AppSpacing.xl),
+                  _HeroBanner(onVerColeccion: () => _irCatalogo(context)),
+                  const SizedBox(height: AppSpacing.xxl),
+                  if (snapshot.hasError)
+                    const EmptyState.error(
+                        titulo: 'No se pudieron cargar los productos')
+                  else ...[
+                    _SeccionCategorias(productos: productos),
                     const SizedBox(height: AppSpacing.xxl),
-                    if (snapshot.hasError)
-                      const EmptyState.error(
-                          titulo: 'No se pudieron cargar los productos')
-                    else ...[
-                      _SeccionCategorias(productos: productos),
-                      const SizedBox(height: AppSpacing.xxl),
-                      _SeccionModelos(productos: productos),
-                      const SizedBox(height: AppSpacing.xxl),
-                      _SeccionPopulares(productos: productos),
-                    ],
+                    _SeccionModelos(productos: productos),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _SeccionPopulares(productos: productos),
                   ],
-                ),
+                ],
               );
             },
           );
@@ -276,7 +274,10 @@ class _HeroBanner extends StatelessWidget {
         onPressed: onVerColeccion,
         style: FilledButton.styleFrom(
           minimumSize: const Size(48, 44),
-          textStyle: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700, fontSize: 13),
+          textStyle: const TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontWeight: FontWeight.w700,
+              fontSize: 13),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.pill)),
         ),

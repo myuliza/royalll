@@ -358,79 +358,75 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                 (constraints.maxWidth - Breakpoints.anchoMaximo) / 2,
               );
 
-              return Scrollbar(
-                child: CustomScrollView(
-                  slivers: [
+              return CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                        lateral, AppSpacing.xl, lateral, AppSpacing.sm),
+                    sliver: SliverToBoxAdapter(
+                      child: SectionHeader(
+                        titulo: 'Catálogo',
+                        subtitulo: cargando
+                            ? 'Cargando fundas…'
+                            : '${productosFiltrados.length} de ${allProductos.length} fundas',
+                        grande: true,
+                      ),
+                    ),
+                  ),
+                  // Barra de filtros fija al hacer scroll
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _FiltrosDelegate(
+                      alto: movil ? 168 : 112,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: lateral),
+                        child: _buildFiltros(
+                            conteoColores, conteoCategorias, categorias),
+                      ),
+                    ),
+                  ),
+                  if (cargando)
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
-                          lateral, AppSpacing.xl, lateral, AppSpacing.sm),
-                      sliver: SliverToBoxAdapter(
-                        child: SectionHeader(
-                          titulo: 'Catálogo',
-                          subtitulo: cargando
-                              ? 'Cargando fundas…'
-                              : '${productosFiltrados.length} de ${allProductos.length} fundas',
-                          grande: true,
+                          lateral, AppSpacing.lg, lateral, AppSpacing.xl),
+                      sliver: const SliverToBoxAdapter(
+                          child:
+                              SkeletonGrid(cantidad: 8, anchoMaximoItem: 250)),
+                    )
+                  else if (productosFiltrados.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EmptyState(
+                        icono: Icons.search_off_rounded,
+                        titulo: 'No hay fundas disponibles para estos filtros.',
+                        mensaje: 'Probá con otra categoría, modelo o color.',
+                        accion: 'Limpiar filtros',
+                        onAccion: () => _limpiarTodo(busquedaGlobal),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                          lateral, AppSpacing.lg, lateral, AppSpacing.xxl),
+                      sliver: SliverGrid.builder(
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: movil ? 230 : 260,
+                          mainAxisSpacing: AppSpacing.lg,
+                          crossAxisSpacing: AppSpacing.lg,
+                          childAspectRatio: 0.70,
                         ),
+                        itemCount: productosFiltrados.length,
+                        itemBuilder: (context, i) {
+                          final p = productosFiltrados[i];
+                          return ProductoCard(
+                            key: ValueKey(p.id),
+                            producto: p,
+                            onTap: () => _mostrarModalDetalle(p),
+                          );
+                        },
                       ),
                     ),
-                    // Barra de filtros fija al hacer scroll
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _FiltrosDelegate(
-                        alto: movil ? 168 : 112,
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: lateral),
-                          child: _buildFiltros(
-                              conteoColores, conteoCategorias, categorias),
-                        ),
-                      ),
-                    ),
-                    if (cargando)
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                            lateral, AppSpacing.lg, lateral, AppSpacing.xl),
-                        sliver: const SliverToBoxAdapter(
-                            child: SkeletonGrid(
-                                cantidad: 8, anchoMaximoItem: 250)),
-                      )
-                    else if (productosFiltrados.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: EmptyState(
-                          icono: Icons.search_off_rounded,
-                          titulo:
-                              'No hay fundas disponibles para estos filtros.',
-                          mensaje: 'Probá con otra categoría, modelo o color.',
-                          accion: 'Limpiar filtros',
-                          onAccion: () => _limpiarTodo(busquedaGlobal),
-                        ),
-                      )
-                    else
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                            lateral, AppSpacing.lg, lateral, AppSpacing.xxl),
-                        sliver: SliverGrid.builder(
-                          gridDelegate:
-                              SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: movil ? 230 : 260,
-                            mainAxisSpacing: AppSpacing.lg,
-                            crossAxisSpacing: AppSpacing.lg,
-                            childAspectRatio: 0.70,
-                          ),
-                          itemCount: productosFiltrados.length,
-                          itemBuilder: (context, i) {
-                            final p = productosFiltrados[i];
-                            return ProductoCard(
-                              key: ValueKey(p.id),
-                              producto: p,
-                              onTap: () => _mostrarModalDetalle(p),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                ),
+                ],
               );
             },
           );

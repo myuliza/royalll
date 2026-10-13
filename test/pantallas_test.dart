@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -185,4 +186,19 @@ void main() {
     await avanzar(tester, 8);
     expect(find.text('3 de 8 fundas'), findsOneWidget);
   });
+
+  for (final ruta in ['/inicio', '/catalogo', '/faq']) {
+    testWidgets('Scroll con la rueda del mouse en $ruta sin errores', (tester) async {
+      await _montar(tester, ruta, const Size(1366, 768), ThemeMode.light);
+      final centro = tester.getCenter(find.byType(AppShell)) + const Offset(100, 100);
+      final mouse = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(mouse.hover(centro));
+      for (var i = 0; i < 5; i++) {
+        await tester.sendEventToBinding(mouse.scroll(const Offset(0, 120)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await avanzar(tester);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

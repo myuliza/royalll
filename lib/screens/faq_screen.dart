@@ -113,117 +113,114 @@ class _FaqScreenState extends State<FaqScreen> {
 
           final lateral = Breakpoints.paddingLateral(context);
 
-          return Scrollbar(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                  lateral, AppSpacing.xl, lateral, AppSpacing.xxl),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SectionHeader(
-                        titulo: 'Preguntas frecuentes',
-                        subtitulo:
-                            'Compras, envíos, garantía y compatibilidad.',
-                        grande: true,
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+                lateral, AppSpacing.xl, lateral, AppSpacing.xxl),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SectionHeader(
+                      titulo: 'Preguntas frecuentes',
+                      subtitulo: 'Compras, envíos, garantía y compatibilidad.',
+                      grande: true,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    // Banner informativo superior
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.lg + 2),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.azul, AppColors.azulClaro],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(AppRadius.xl),
+                        border: Border.all(
+                            color: AppColors.dorado.withValues(alpha: 0.25)),
+                        boxShadow:
+                            AppShadows.suave(Theme.of(context).brightness),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      // Banner informativo superior
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.lg + 2),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.azul, AppColors.azulClaro],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.dorado.withValues(alpha: 0.25),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.help_center_outlined,
+                                color: Colors.white, size: 28),
                           ),
-                          borderRadius: BorderRadius.circular(AppRadius.xl),
-                          border: Border.all(
-                              color: AppColors.dorado.withValues(alpha: 0.25)),
-                          boxShadow:
-                              AppShadows.suave(Theme.of(context).brightness),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.dorado.withValues(alpha: 0.25),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.help_center_outlined,
-                                  color: Colors.white, size: 28),
+                          const SizedBox(width: 14),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '¿Tenés dudas?',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 3),
+                                Text(
+                                  'Acá respondemos las preguntas más comunes sobre compras, envíos y compatibilidad.',
+                                  style: TextStyle(
+                                      color: Colors.white70, fontSize: 12),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 14),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '¿Tenés dudas?',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(height: 3),
-                                  Text(
-                                    'Acá respondemos las preguntas más comunes sobre compras, envíos y compatibilidad.',
-                                    style: TextStyle(
-                                        color: Colors.white70, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: AppSpacing.xl),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
 
-                      // Lista de preguntas frecuentes (tarjetas expandibles)
-                      for (final item in faqs) ...[
-                        _TarjetaFaq(item: item),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                      const SizedBox(height: AppSpacing.lg),
-
-                      // Tarjeta de contacto WhatsApp directo
-                      AppCard(
-                        padding: const EdgeInsets.all(AppSpacing.xl - 4),
-                        child: Column(
-                          children: [
-                            const Icon(Icons.support_agent,
-                                size: 40, color: AppColors.dorado),
-                            const SizedBox(height: 8),
-                            Text(
-                              '¿No encontraste lo que buscabas?',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: royal.textoPrincipal),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Escribinos a nuestro WhatsApp y te atendemos de forma personalizada.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  fontSize: 13, color: royal.textoSecundario),
-                            ),
-                            const SizedBox(height: 14),
-                            FilledButton.icon(
-                              icon: const Icon(Icons.chat_bubble_outline),
-                              label: const Text('Contactar por WhatsApp'),
-                              onPressed: _abrirWhatsapp,
-                            ),
-                          ],
-                        ),
-                      ),
+                    // Lista de preguntas frecuentes (tarjetas expandibles)
+                    for (final item in faqs) ...[
+                      _TarjetaFaq(item: item),
+                      const SizedBox(height: AppSpacing.md),
                     ],
-                  ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Tarjeta de contacto WhatsApp directo
+                    AppCard(
+                      padding: const EdgeInsets.all(AppSpacing.xl - 4),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.support_agent,
+                              size: 40, color: AppColors.dorado),
+                          const SizedBox(height: 8),
+                          Text(
+                            '¿No encontraste lo que buscabas?',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: royal.textoPrincipal),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Escribinos a nuestro WhatsApp y te atendemos de forma personalizada.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 13, color: royal.textoSecundario),
+                          ),
+                          const SizedBox(height: 14),
+                          FilledButton.icon(
+                            icon: const Icon(Icons.chat_bubble_outline),
+                            label: const Text('Contactar por WhatsApp'),
+                            onPressed: _abrirWhatsapp,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
