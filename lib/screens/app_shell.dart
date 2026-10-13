@@ -161,6 +161,8 @@ class _IconoDestino extends StatelessWidget {
   }
 }
 
+const double _altoLeading = 56; // IconButton (48) + separación (8)
+
 class _BarraLateral extends StatelessWidget {
   final List<_Destino> destinos;
   final int seleccionado;
@@ -186,10 +188,11 @@ class _BarraLateral extends StatelessWidget {
       labelType: NavigationRailLabelType.none,
       selectedIndex: seleccionado < 0 ? null : seleccionado,
       onDestinationSelected: (i) => onIr(destinos[i].rama),
-      groupAlignment: -1,
+      // Ítems centrados verticalmente; el botón de colapsar (leading) queda fijo arriba
+      groupAlignment: 0.0,
       leading: puedeColapsar
           ? Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              padding: const EdgeInsets.only(bottom: _altoLeading - 48),
               child: IconButton(
                 tooltip: extendida ? 'Colapsar menú' : 'Expandir menú',
                 color: Colors.white70,
@@ -202,6 +205,9 @@ class _BarraLateral extends StatelessWidget {
               ),
             )
           : const SizedBox(height: AppSpacing.sm),
+      // Espacio que equilibra el botón de arriba (+16 por el margen interno superior del rail):
+      // el grupo de ítems queda en el centro exacto de la barra
+      trailing: SizedBox(height: (puedeColapsar ? _altoLeading : AppSpacing.sm) + 16),
       destinations: [
         for (final d in destinos)
           NavigationRailDestination(

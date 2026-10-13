@@ -165,4 +165,56 @@ void main() {
     expect(router.routerDelegate.currentConfiguration.uri.path, '/empleados');
     expect(find.text('Empleados'), findsOneWidget); // destino visible mientras se está ahí
   });
+
+  // Centro vertical del grupo de ítems (de Inicio a FAQ) respecto de la barra lateral
+  void verificarCentrado(WidgetTester tester) {
+    final rail = tester.getRect(find.byType(NavigationRail));
+    final primero = tester.getRect(find.descendant(of: find.byType(NavigationRail), matching: find.byIcon(Icons.home_rounded)));
+    final ultimo = tester.getRect(
+        find.descendant(of: find.byType(NavigationRail), matching: find.byIcon(Icons.help_outline_rounded)));
+    final centroGrupo = (primero.top + ultimo.bottom) / 2;
+    expect((centroGrupo - rail.center.dy).abs(), lessThan(6), reason: 'grupo=$centroGrupo barra=${rail.center.dy}');
+    // íconos alineados entre sí
+    expect((primero.center.dx - ultimo.center.dx).abs(), lessThan(1));
+  }
+
+  for (final t in const [Size(1366, 768), Size(1920, 1080), Size(1366, 560), Size(768, 1024)]) {
+    testWidgets('Barra lateral: ítems centrados verticalmente en ${t.width.toInt()}x${t.height.toInt()}', (tester) async {
+      await _pump(tester, t);
+      verificarCentrado(tester);
+      if (t.width > 1024) {
+        await tester.tap(find.byTooltip('Colapsar menú'));
+        await tester.pumpAndSettle();
+        verificarCentrado(tester);
+        await tester.tap(find.byTooltip('Expandir menú'));
+        await tester.pumpAndSettle();
+        verificarCentrado(tester);
+      }
+    });
+  }
+
+  testWidgets('Sigue centrada al cambiar el alto de la ventana', (tester) async {
+    await _pump(tester, const Size(1366, 900));
+    verificarCentrado(tester);
+    tester.view.physicalSize = const Size(1366, 620);
+    await tester.pumpAndSettle();
+    verificarCentrado(tester);
+  });
+
+  testWidgets('Barra inferior: ícono y texto centrados en cada ítem', (tester) async {
+    await _pump(tester, const Size(390, 844));
+    final barra = tester.getRect(find.byType(NavigationBar));
+    for (final (icono, texto) in [
+      (Icons.home_rounded, 'Inicio'),
+      (Icons.grid_view_outlined, 'Catálogo'),
+      (Icons.shopping_bag_outlined, 'Carrito'),
+      (Icons.help_outline_rounded, 'FAQ'),
+    ]) {
+      final i = tester.getRect(find.descendant(of: find.byType(NavigationBar), matching: find.byIcon(icono)));
+      final l = tester.getRect(find.descendant(of: find.byType(NavigationBar), matching: find.text(texto)));
+      expect((i.center.dx - l.center.dx).abs(), lessThan(1), reason: texto);
+      final centroVertical = (i.top + l.bottom) / 2;
+      expect((centroVertical - barra.center.dy).abs(), lessThan(6), reason: texto);
+    }
+  });
 }
