@@ -276,6 +276,47 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
     }
   }
 
+  /// Elimina una funda de Firestore después de confirmar (acción irreversible).
+  Future<void> _eliminarProducto(Producto p) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_forever_outlined, color: AppColors.rojoDescuento, size: 32),
+        title: Text('¿Eliminar "${p.nombre}"?'),
+        content: Text(
+          'La funda se quita del catálogo para todos los clientes. Esta acción no se puede deshacer.'
+          '\n\n${p.codigoColor.isNotEmpty ? 'Código: ${p.codigoColor} · ' : ''}Stock: ${p.stock} un.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.rojoDescuento, foregroundColor: Colors.white),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: const Text('Eliminar'),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('productos').doc(p.id).delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"${p.nombre}" eliminada del catálogo'), backgroundColor: AppColors.azul),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   /// Diálogo dedicado e interactivo para cambiar o actualizar la foto de una funda
   Future<void> _mostrarDialogoCambiarFoto(Producto p) async {
     final urlCtrl = TextEditingController(text: p.fotoPrincipalUrl);
@@ -1301,6 +1342,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                       onEditarStock: () => _editarStock(p),
                       onEditarDescuento: () => _editarDescuento(p),
                       onEditarFoto: () => _mostrarDialogoCambiarFoto(p),
+                      onEliminar: () => _eliminarProducto(p),
                       onToggleDescuento: (val) {
                         if (val && p.porcentajeDescuento <= 0) {
                           _editarDescuento(p);
@@ -1343,6 +1385,7 @@ class _EmpleadoProductoEditableCard extends StatefulWidget {
   final VoidCallback onEditarDescuento;
   final VoidCallback onEditarFoto;
   final ValueChanged<bool> onToggleDescuento;
+  final VoidCallback onEliminar;
 
   const _EmpleadoProductoEditableCard({
     super.key,
@@ -1352,6 +1395,7 @@ class _EmpleadoProductoEditableCard extends StatefulWidget {
     required this.onEditarDescuento,
     required this.onEditarFoto,
     required this.onToggleDescuento,
+    required this.onEliminar,
   });
 
   @override
@@ -1585,9 +1629,12 @@ class _EmpleadoProductoEditableCardState extends State<_EmpleadoProductoEditable
           const Divider(height: 1),
           const SizedBox(height: 10),
 
-          // Fila inferior: Control de Stock (validación >= 0) y Descuento
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Fila inferior: Control de Stock (validación >= 0), Descuento y Eliminar
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               // Stock con modal validado >= 0
               InkWell(
@@ -1615,6 +1662,7 @@ class _EmpleadoProductoEditableCardState extends State<_EmpleadoProductoEditable
 
               // Control de Descuento
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
                     'Descuento:',
@@ -1648,6 +1696,13 @@ class _EmpleadoProductoEditableCardState extends State<_EmpleadoProductoEditable
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    tooltip: 'Eliminar funda',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.delete_outline, color: AppColors.rojoDescuento, size: 20),
+                    onPressed: widget.onEliminar,
                   ),
                 ],
               ),
