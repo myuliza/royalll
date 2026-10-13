@@ -17,6 +17,17 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
   String _categoriaFiltro = 'todas';
   String _busqueda = '';
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
+  int _seccion = 0; // 0 = Servicios, 1 = Productos
+  String _filtroEspecial = ''; // 'sinStock' | 'stockBajo' | 'descuento'
+  static const int _umbralStockBajo = 3;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
 
   final List<String> _categorias = [
     'todas',
@@ -850,157 +861,362 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
     );
   }
 
+  Future<void> _cerrarSesion() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) Navigator.pop(context);
+  }
+
+  /// Quitar el foco antes de cambiar de sección dispara el guardado on-blur de las tarjetas editables
+  void _cambiarSeccion(int seccion) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _seccion = seccion);
+  }
+
+  /// Navega a la sección Productos aplicando filtros desde Servicios (sin arrastrar búsquedas anteriores)
+  void _irAProductos({String categoria = 'todas', String filtroEspecial = '', bool buscar = false}) {
+    _searchController.clear();
+    setState(() {
+      _seccion = 1;
+      _categoriaFiltro = categoria;
+      _filtroEspecial = filtroEspecial;
+      _busqueda = '';
+    });
+    if (buscar) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _searchFocus.requestFocus());
+    }
+  }
+
+  List<Producto> _filtrarProductos(List<Producto> todos) {
+    var productos = todos;
+
+    if (_categoriaFiltro != 'todas') {
+      productos = productos.where((p) => p.categoria == _categoriaFiltro).toList();
+    }
+
+    switch (_filtroEspecial) {
+      case 'sinStock':
+        productos = productos.where((p) => p.stock <= 0).toList();
+      case 'stockBajo':
+        productos = productos.where((p) => p.stock > 0 && p.stock <= _umbralStockBajo).toList();
+      case 'descuento':
+        productos = productos.where((p) => p.enDescuento && p.porcentajeDescuento > 0).toList();
+    }
+
+    // Buscador integrado: modelo, color y código de producto (ej. 001, rojo, transparente 001)
+    if (_busqueda.isNotEmpty) {
+      productos = productos.where((p) {
+        final q = _busqueda;
+        final matchNombre = p.nombre.toLowerCase().contains(q);
+        final matchCodigo = p.codigoColor.toLowerCase().contains(q);
+        final matchColorHex = p.colorHex.toLowerCase().contains(q);
+        final matchCat = p.categoria.toLowerCase().contains(q);
+        final matchModelos = p.modelosCompatibles.any((m) => m.toLowerCase().contains(q));
+        return matchNombre || matchCodigo || matchColorHex || matchCat || matchModelos;
+      }).toList();
+    }
+    return productos;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.fondo,
-      appBar: AppBar(
-        backgroundColor: AppColors.azul,
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Panel Empleado',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.storage_rounded),
-            tooltip: 'Mantenimiento de datos',
-            onPressed: _abrirMenuDatos,
+    final usarRail = MediaQuery.sizeOf(context).width >= 840;
+
+    final contenido = StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('productos').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Center(child: Text('Error al sincronizar con Firebase'));
+        }
+        if (!snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.dorado),
+          );
+        }
+
+        final todos = snapshot.data!.docs
+            .map((d) => Producto.fromMap(d.id, d.data() as Map<String, dynamic>))
+            .toList();
+
+        // IndexedStack mantiene montada la lista: no se pierden ediciones ni la posición del scroll
+        return IndexedStack(
+          index: _seccion,
+          sizing: StackFit.expand,
+          children: [_buildServicios(todos), _buildProductos(todos)],
+        );
+      },
+    );
+
+    // Atrás desde Productos vuelve a Servicios antes de salir del panel
+    return PopScope(
+      canPop: _seccion == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _cambiarSeccion(0);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.fondo,
+        appBar: AppBar(
+          backgroundColor: AppColors.azul,
+          foregroundColor: Colors.white,
+          title: const Text(
+            'Panel Empleado',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar sesión',
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.dorado,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Funda', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: _mostrarModalCrearFunda,
-      ),
-      body: Column(
-        children: [
-          // Buscador integrado por modelo, color y código de producto
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  onChanged: (val) => setState(() => _busqueda = val.trim().toLowerCase()),
-                  decoration: InputDecoration(
-                    hintText: 'Buscar por modelo, color o código (ej. iPhone 15, rojo, 001)...',
-                    prefixIcon: const Icon(Icons.search, color: AppColors.textoAtenuado),
-                    suffixIcon: _busqueda.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _busqueda = '');
-                            },
-                          )
-                        : null,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 36,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _categorias.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, idx) {
-                      final cat = _categorias[idx];
-                      final isSelected = cat == _categoriaFiltro;
-                      return ChoiceChip(
-                        label: Text(_labelCategoria(cat)),
-                        selected: isSelected,
-                        selectedColor: AppColors.azul,
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textoPrincipal,
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        ),
-                        onSelected: (_) => setState(() => _categoriaFiltro = cat),
-                      );
-                    },
-                  ),
-                ),
-              ],
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.storage_rounded),
+              tooltip: 'Mantenimiento de datos',
+              onPressed: _abrirMenuDatos,
             ),
-          ),
-
-          // Lista en tiempo real de productos
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('productos').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Error al sincronizar con Firebase'));
-                }
-                if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.dorado),
-                  );
-                }
-
-                var productos = snapshot.data!.docs
-                    .map((d) => Producto.fromMap(d.id, d.data() as Map<String, dynamic>))
-                    .toList();
-
-                if (_categoriaFiltro != 'todas') {
-                  productos = productos.where((p) => p.categoria == _categoriaFiltro).toList();
-                }
-
-                // Buscador integrado: modelo, color y código de producto (ej. 001, rojo, transparente 001)
-                if (_busqueda.isNotEmpty) {
-                  productos = productos.where((p) {
-                    final q = _busqueda;
-                    final matchNombre = p.nombre.toLowerCase().contains(q);
-                    final matchCodigo = p.codigoColor.toLowerCase().contains(q);
-                    final matchColorHex = p.colorHex.toLowerCase().contains(q);
-                    final matchCat = p.categoria.toLowerCase().contains(q);
-                    final matchModelos = p.modelosCompatibles.any((m) => m.toLowerCase().contains(q));
-                    return matchNombre || matchCodigo || matchColorHex || matchCat || matchModelos;
-                  }).toList();
-                }
-
-                if (productos.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textoAtenuado),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'No se encontraron fundas para este filtro.',
-                            style: TextStyle(color: AppColors.textoSecundario),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            icon: const Icon(Icons.add),
-                            label: const Text('Agregar la primera funda'),
-                            onPressed: _mostrarModalCrearFunda,
-                          ),
-                        ],
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Cerrar sesión',
+              onPressed: _cerrarSesion,
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: AppColors.dorado,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: const Text('Nueva Funda', style: TextStyle(fontWeight: FontWeight.bold)),
+          onPressed: _mostrarModalCrearFunda,
+        ),
+        bottomNavigationBar: usarRail
+            ? null
+            : NavigationBar(
+                selectedIndex: _seccion,
+                onDestinationSelected: _cambiarSeccion,
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.dashboard_outlined),
+                    selectedIcon: Icon(Icons.dashboard),
+                    label: 'Servicios',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.inventory_2_outlined),
+                    selectedIcon: Icon(Icons.inventory_2),
+                    label: 'Productos',
+                  ),
+                ],
+              ),
+        body: usarRail
+            ? Row(
+                children: [
+                  // Menú lateral azul oscuro en pantallas anchas
+                  NavigationRail(
+                    backgroundColor: AppColors.azulProfundo,
+                    selectedIndex: _seccion,
+                    onDestinationSelected: _cambiarSeccion,
+                    labelType: NavigationRailLabelType.all,
+                    indicatorColor: AppColors.dorado,
+                    selectedIconTheme: const IconThemeData(color: AppColors.azul),
+                    unselectedIconTheme: const IconThemeData(color: Colors.white70),
+                    selectedLabelTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    unselectedLabelTextStyle: const TextStyle(color: Colors.white70),
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(Icons.dashboard),
+                        label: Text('Servicios'),
                       ),
-                    ),
-                  );
-                }
+                      NavigationRailDestination(
+                        icon: Icon(Icons.inventory_2_outlined),
+                        selectedIcon: Icon(Icons.inventory_2),
+                        label: Text('Productos'),
+                      ),
+                    ],
+                  ),
+                  Expanded(child: contenido),
+                ],
+              )
+            : contenido,
+      ),
+    );
+  }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
+  /// Sección "Servicios": tarjetas destacadas con contadores + grilla de accesos rápidos
+  Widget _buildServicios(List<Producto> todos) {
+    final sinStock = todos.where((p) => p.stock <= 0).length;
+    final stockBajo = todos.where((p) => p.stock > 0 && p.stock <= _umbralStockBajo).length;
+    final enDescuento = todos.where((p) => p.enDescuento && p.porcentajeDescuento > 0).length;
+    final textTheme = Theme.of(context).textTheme;
+
+    final destacadas = [
+      _ServicioDestacado('Fundas', Icons.inventory_2_rounded, const Color(0xFF5B4FCF), todos.length,
+          () => _irAProductos()),
+      _ServicioDestacado('Sin stock', Icons.remove_shopping_cart_rounded, const Color(0xFFB45309), sinStock,
+          () => _irAProductos(filtroEspecial: 'sinStock')),
+      _ServicioDestacado('Stock bajo', Icons.trending_down_rounded, const Color(0xFF0F766E), stockBajo,
+          () => _irAProductos(filtroEspecial: 'stockBajo')),
+      _ServicioDestacado('En descuento', Icons.local_offer_rounded, const Color(0xFFBE185D), enDescuento,
+          () => _irAProductos(filtroEspecial: 'descuento')),
+    ];
+
+    final accesos = [
+      _AccesoRapido('Nueva funda', Icons.add_rounded, AppColors.dorado, _mostrarModalCrearFunda),
+      _AccesoRapido('Productos', Icons.inventory_2_outlined, AppColors.azul, () => _irAProductos()),
+      _AccesoRapido('Buscar', Icons.search_rounded, const Color(0xFF5B4FCF), () => _irAProductos(buscar: true)),
+      _AccesoRapido('Sólidas', Icons.circle, const Color(0xFF0F766E), () => _irAProductos(categoria: 'solido')),
+      _AccesoRapido('Transparentes', Icons.blur_on_rounded, const Color(0xFF64748B),
+          () => _irAProductos(categoria: 'transparente')),
+      _AccesoRapido('Personalizadas', Icons.brush_outlined, const Color(0xFFBE185D),
+          () => _irAProductos(categoria: 'personalizada')),
+      _AccesoRapido('Mantenimiento', Icons.storage_rounded, const Color(0xFFB45309), _abrirMenuDatos),
+      _AccesoRapido('Cerrar sesión', Icons.logout_rounded, AppColors.rojoDescuento, _cerrarSesion),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final ancho = constraints.maxWidth;
+        const espacio = 12.0;
+        final anchoUtil = ancho - 32;
+        final columnasDestacadas = ancho >= 840 ? 4 : 2;
+        final columnasAccesos = ancho >= 840 ? 8 : (ancho >= 600 ? 6 : (ancho >= 360 ? 4 : 3));
+        final anchoDestacada = (anchoUtil - espacio * (columnasDestacadas - 1)) / columnasDestacadas;
+        final anchoAcceso = (anchoUtil - 8 * (columnasAccesos - 1)) / columnasAccesos;
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 96),
+          children: [
+            Text('Servicios', style: textTheme.headlineSmall),
+            const SizedBox(height: 4),
+            Text(
+              'Gestioná el catálogo, el stock y las promociones desde un solo lugar.',
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.textoSecundario),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: espacio,
+              runSpacing: espacio,
+              children: destacadas
+                  .map((d) => SizedBox(width: anchoDestacada, child: _TarjetaDestacada(servicio: d)))
+                  .toList(),
+            ),
+            const SizedBox(height: 28),
+            Text('Accesos rápidos', style: textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: accesos
+                  .map((a) => SizedBox(width: anchoAcceso, child: _BotonAccesoRapido(acceso: a)))
+                  .toList(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _labelFiltroEspecial(String f) {
+    switch (f) {
+      case 'sinStock':
+        return 'Sin stock';
+      case 'stockBajo':
+        return 'Stock bajo (≤ $_umbralStockBajo)';
+      case 'descuento':
+        return 'En descuento';
+      default:
+        return '';
+    }
+  }
+
+  /// Sección "Productos": buscador, filtros y lista editable en tiempo real
+  Widget _buildProductos(List<Producto> todos) {
+    final productos = _filtrarProductos(todos);
+
+    return Column(
+      children: [
+        // Buscador integrado por modelo, color y código de producto
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Column(
+            children: [
+              TextField(
+                controller: _searchController,
+                focusNode: _searchFocus,
+                onChanged: (val) => setState(() => _busqueda = val.trim().toLowerCase()),
+                decoration: InputDecoration(
+                  hintText: 'Buscar por modelo, color o código (ej. iPhone 15, rojo, 001)...',
+                  prefixIcon: const Icon(Icons.search, color: AppColors.textoAtenuado),
+                  suffixIcon: _busqueda.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _busqueda = '');
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _categorias.length + (_filtroEspecial.isNotEmpty ? 1 : 0),
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, idx) {
+                    // Filtro especial activo (desde una tarjeta de Servicios), removible
+                    if (_filtroEspecial.isNotEmpty && idx == 0) {
+                      return InputChip(
+                        label: Text(_labelFiltroEspecial(_filtroEspecial)),
+                        selected: true,
+                        onDeleted: () => setState(() => _filtroEspecial = ''),
+                        onPressed: () => setState(() => _filtroEspecial = ''),
+                      );
+                    }
+                    final cat = _categorias[_filtroEspecial.isNotEmpty ? idx - 1 : idx];
+                    final isSelected = cat == _categoriaFiltro;
+                    return ChoiceChip(
+                      label: Text(_labelCategoria(cat)),
+                      selected: isSelected,
+                      selectedColor: AppColors.azul,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : AppColors.textoPrincipal,
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                      onSelected: (_) => setState(() => _categoriaFiltro = cat),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Lista en tiempo real de productos
+        Expanded(
+          child: productos.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textoAtenuado),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No se encontraron fundas para este filtro.',
+                          style: TextStyle(color: AppColors.textoSecundario),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: const Text('Agregar la primera funda'),
+                          onPressed: _mostrarModalCrearFunda,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                   itemCount: productos.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 14),
                   itemBuilder: (context, i) {
@@ -1026,11 +1242,127 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                       },
                     );
                   },
-                );
-              },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ServicioDestacado {
+  final String titulo;
+  final IconData icono;
+  final Color color;
+  final int contador;
+  final VoidCallback onTap;
+  const _ServicioDestacado(this.titulo, this.icono, this.color, this.contador, this.onTap);
+}
+
+class _AccesoRapido {
+  final String titulo;
+  final IconData icono;
+  final Color color;
+  final VoidCallback onTap;
+  const _AccesoRapido(this.titulo, this.icono, this.color, this.onTap);
+}
+
+/// Tarjeta grande de color con ícono y contador (estilo dashboard)
+class _TarjetaDestacada extends StatelessWidget {
+  final _ServicioDestacado servicio;
+  const _TarjetaDestacada({required this.servicio});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: servicio.color,
+      elevation: 2,
+      shadowColor: servicio.color.withValues(alpha: 0.4),
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: servicio.onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 112),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(servicio.icono, color: Colors.white),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${servicio.contador}',
+                        style: TextStyle(color: servicio.color, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  servicio.titulo,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Botón de acceso rápido: ícono en círculo de color + nombre
+class _BotonAccesoRapido extends StatelessWidget {
+  final _AccesoRapido acceso;
+  const _BotonAccesoRapido({required this.acceso});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: acceso.onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: acceso.color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(acceso.icono, color: acceso.color),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              acceso.titulo,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ],
+        ),
       ),
     );
   }

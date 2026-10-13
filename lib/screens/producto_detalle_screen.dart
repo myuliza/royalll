@@ -1,13 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/producto.dart';
 import '../providers/carrito_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_product_image.dart';
+import 'carrito_screen.dart';
+import 'catalogo_screen.dart';
 
 class ProductoDetalleScreen extends StatelessWidget {
   final Producto producto;
   const ProductoDetalleScreen({super.key, required this.producto});
+
+  Color _parseHex(String hex) {
+    try {
+      final buffer = StringBuffer();
+      if (hex.length == 6 || hex.length == 7) buffer.write('ff');
+      buffer.write(hex.replaceFirst('#', ''));
+      return Color(int.parse(buffer.toString(), radix: 16));
+    } catch (_) {
+      return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +142,28 @@ class ProductoDetalleScreen extends StatelessWidget {
                       ),
                     ),
 
+                  if (producto.colorHex.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: _parseHex(producto.colorHex),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black26),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Color: ${CatalogoScreen.nombreColorLegible(producto.colorHex)}',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
+                  ],
+
                   const SizedBox(height: 18),
                   Text('Modelos compatibles', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
@@ -160,40 +196,59 @@ class ProductoDetalleScreen extends StatelessWidget {
                     ),
                   ],
 
-                  const SizedBox(height: 28),
-
-                  // Botón Agregar al Carrito con validación de stock
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add_shopping_cart),
-                      label: Text(agotado ? 'Producto agotado' : 'Agregar al carrito'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: agotado ? Colors.grey : AppColors.dorado,
-                      ),
-                      onPressed: agotado
-                          ? null
-                          : () {
-                              final exito = context.read<CarritoProvider>().agregar(producto);
-                              if (exito) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('${producto.nombre} agregado al carrito')),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('No es posible agregar más: stock máximo alcanzado.'),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                              }
-                            },
-                    ),
-                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+      // Acción principal fija abajo, protegida de la barra de navegación del sistema
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: FilledButton.icon(
+          icon: const Icon(Icons.add_shopping_cart),
+          label: Text(agotado ? 'Producto agotado' : 'Agregar al carrito'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.dorado,
+            foregroundColor: AppColors.azul,
+            minimumSize: const Size.fromHeight(52),
+          ),
+          onPressed: agotado
+              ? null
+              : () {
+                  final exito = context.read<CarritoProvider>().agregar(producto);
+                  // Capturados antes del pop: el SnackBar sobrevive a esta pantalla
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+                  messenger.hideCurrentSnackBar();
+                  if (exito) {
+                    HapticFeedback.lightImpact();
+                    // Cierre automático al agregar, para seguir comprando
+                    navigator.pop();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('${producto.nombre} agregado al carrito'),
+                        action: SnackBarAction(
+                          label: 'Ver carrito',
+                          onPressed: () {
+                            if (!navigator.mounted) return;
+                            navigator.push(
+                              MaterialPageRoute(builder: (_) => const CarritoScreen()),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('No es posible agregar más: stock máximo alcanzado.'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                },
         ),
       ),
     );

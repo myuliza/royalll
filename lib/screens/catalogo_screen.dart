@@ -1,18 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart';
 import '../models/producto.dart';
-import '../providers/carrito_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/producto_card.dart';
 import '../widgets/royal_logo.dart';
-import '../widgets/app_product_image.dart';
 import 'producto_detalle_screen.dart';
 import 'carrito_screen.dart';
 import 'faq_screen.dart';
 
 class CatalogoScreen extends StatefulWidget {
   const CatalogoScreen({super.key});
+
+  // Paleta completa y estandarizada de colores principales
+  static const Map<String, String> _nombresColores = {
+    '#000000': 'Negro',
+    '#FFFFFF': 'Blanco',
+    '#E5E7EB': 'Blanco/Transparente',
+    '#0B2545': 'Azul',
+    '#13315C': 'Azul Marino',
+    '#DC2626': 'Rojo',
+    '#16A34A': 'Verde',
+    '#F472B6': 'Rosa',
+    '#7E22CE': 'Morado',
+    '#C9A227': 'Dorado/Beige',
+    '#64748B': 'Gris/Titanio',
+    '#78350F': 'Marrón',
+  };
+
+  static String nombreColorLegible(String hex) {
+    final h = hex.toUpperCase().trim();
+    return _nombresColores[h] ?? h;
+  }
 
   @override
   State<CatalogoScreen> createState() => _CatalogoScreenState();
@@ -50,21 +68,6 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     'iPhone 16 Pro Max',
   ];
 
-  // Paleta completa y estandarizada de colores principales
-  static const Map<String, String> _nombresColores = {
-    '#000000': 'Negro',
-    '#FFFFFF': 'Blanco',
-    '#E5E7EB': 'Blanco/Transparente',
-    '#0B2545': 'Azul',
-    '#13315C': 'Azul Marino',
-    '#DC2626': 'Rojo',
-    '#16A34A': 'Verde',
-    '#F472B6': 'Rosa',
-    '#7E22CE': 'Morado',
-    '#C9A227': 'Dorado/Beige',
-    '#64748B': 'Gris/Titanio',
-    '#78350F': 'Marrón',
-  };
 
   @override
   void dispose() {
@@ -72,11 +75,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     super.dispose();
   }
 
-  String _nombreColorLegible(String hex) {
-    final h = hex.toUpperCase().trim();
-    if (_nombresColores.containsKey(h)) {
-      return _nombresColores[h]!;
-    }
+  String _nombreColorLegible(String hex) => CatalogoScreen.nombreColorLegible(hex);
     return h;
   }
 
@@ -91,230 +90,10 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     }
   }
 
-  /// Popup / Modal centrado en Modo Usuario con cierre automático al agregar al carrito
-  void _mostrarModalDetalle(Producto p) {
-    final tieneDescuento = p.enDescuento && p.porcentajeDescuento > 0;
-    final swatchColor = _parseHex(p.colorHex);
-    final agotado = p.stock <= 0;
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.70), // Fondo translúcido
-      builder: (dialogCtx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Barra superior con botón de cerrar
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 12, 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.fondo,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        p.codigoColor.isNotEmpty
-                            ? '${p.categoria.toUpperCase()} • ${p.codigoColor.toUpperCase()}'
-                            : p.categoria.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: AppColors.textoSecundario,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Cerrar',
-                      onPressed: () => Navigator.pop(dialogCtx),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Imagen ampliada con AppProductImage
-              Container(
-                height: 250,
-                color: const Color(0xFFF9FAFB),
-                padding: const EdgeInsets.all(16),
-                child: AppProductImage(
-                  imageUrl: p.fotoPrincipalUrl,
-                  fit: BoxFit.contain,
-                ),
-              ),
-
-              // Información del producto
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nombre con formato estricto: "Funda iPhone X"
-                    Text(
-                      p.nombre,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textoPrincipal,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Precios
-                    Row(
-                      children: [
-                        Text(
-                          p.precioFinalFormateado,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: tieneDescuento ? AppColors.rojoDescuento : AppColors.azul,
-                          ),
-                        ),
-                        if (tieneDescuento) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            p.precioOriginalFormateado,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              decoration: TextDecoration.lineThrough,
-                              color: AppColors.textoAtenuado,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.rojoDescuento,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '-${p.porcentajeDescuento}% OFF',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Color y Stock
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: swatchColor,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.black26),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Color: ${_nombreColorLegible(p.colorHex)}',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: agotado
-                                ? Colors.red.withValues(alpha: 0.12)
-                                : AppColors.verdeStock.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            agotado ? 'Agotado' : 'Stock: ${p.stock} un.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: agotado ? Colors.red : AppColors.verdeStock,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    // REQUERIMIENTO 1: CIERRE AUTOMÁTICO DEL POPUP AL AGREGAR AL CARRITO
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.add_shopping_cart),
-                        label: Text(agotado ? 'Producto agotado' : 'Agregar al carrito'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: agotado ? Colors.grey : AppColors.dorado,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: agotado
-                            ? null
-                            : () {
-                                final carrito = context.read<CarritoProvider>();
-                                final agregado = carrito.agregar(p);
-                                // CERRAR AUTOMÁTICAMENTE EL POPUP DE FORMA INMEDIATA:
-                                Navigator.pop(dialogCtx);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      agregado
-                                          ? '${p.nombre} agregado al carrito'
-                                          : 'Stock agotado o límite alcanzado para ${p.nombre}',
-                                    ),
-                                    backgroundColor: agregado ? AppColors.azul : Colors.orange,
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Botón para ver detalle completo
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton.icon(
-                        icon: const Icon(Icons.info_outline, size: 16),
-                        label: const Text('Ver opciones y modelos compatibles'),
-                        onPressed: () {
-                          Navigator.pop(dialogCtx);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProductoDetalleScreen(producto: p),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  void _abrirDetalle(Producto p) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ProductoDetalleScreen(producto: p)),
     );
   }
 
@@ -424,7 +203,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                           final p = productosFiltrados[i];
                           return ProductoCard(
                             producto: p,
-                            onTap: () => _mostrarModalDetalle(p),
+                            onTap: () => _abrirDetalle(p),
                           );
                         },
                       ),
@@ -468,51 +247,170 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     );
   }
 
+  int get _filtrosAvanzadosActivos =>
+      (_modeloSeleccionado != 'todos' ? 1 : 0) + _coloresSeleccionados.length;
+
+  /// Filtros de modelo y color en una bottom sheet para liberar espacio al catálogo
+  void _mostrarFiltrosAvanzados(Map<String, int> conteoColores) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      isScrollControlled: true,
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setSheetState) {
+          void actualizar(VoidCallback cambio) {
+            setState(cambio);
+            setSheetState(() {});
+          }
+
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('Filtros', style: Theme.of(sheetCtx).textTheme.titleLarge),
+                      ),
+                      if (_filtrosAvanzadosActivos > 0)
+                        TextButton(
+                          onPressed: () => actualizar(() {
+                            _modeloSeleccionado = 'todos';
+                            _coloresSeleccionados.clear();
+                          }),
+                          child: const Text('Limpiar filtros'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey(_modeloSeleccionado),
+                    initialValue: _modeloSeleccionado,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Modelo de iPhone',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _modelos
+                        .map((m) => DropdownMenuItem(
+                              value: m,
+                              child: Text(m == 'todos' ? 'Todos los modelos de iPhone' : m),
+                            ))
+                        .toList(),
+                    onChanged: (v) => actualizar(() => _modeloSeleccionado = v ?? 'todos'),
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Colores', style: Theme.of(sheetCtx).textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  // FILTRADO MULTICOLOR DINÁMICO (paleta ampliada con selección múltiple)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: conteoColores.entries.map((entry) {
+                      final hex = entry.key;
+                      final isSelected = _coloresSeleccionados.contains(hex);
+                      return FilterChip(
+                        selected: isSelected,
+                        avatar: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: _parseHex(hex),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black26, width: 0.8),
+                          ),
+                        ),
+                        label: Text('${_nombreColorLegible(hex)} (${entry.value})'),
+                        onSelected: (val) => actualizar(() {
+                          if (val) {
+                            _coloresSeleccionados.add(hex);
+                          } else {
+                            _coloresSeleccionados.remove(hex);
+                          }
+                        }),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(sheetCtx),
+                    child: const Text('Ver resultados'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildFiltros(Map<String, int> conteoColores) {
+    final activos = _filtrosAvanzadosActivos;
     return Container(
       color: AppColors.azul,
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Buscador integrado por modelo, color y código de producto
+          // Buscador integrado por modelo, color y código + acceso a filtros
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: (v) => setState(() => _busqueda = v.trim().toLowerCase()),
-              style: const TextStyle(fontSize: 13, color: AppColors.textoPrincipal),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                isDense: true,
-                hintText: 'Buscar por modelo, color o código (ej. iPhone 15, rojo, 001)...',
-                prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textoAtenuado),
-                suffixIcon: _busqueda.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          setState(() => _busqueda = '');
-                        },
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (v) => setState(() => _busqueda = v.trim().toLowerCase()),
+                    textInputAction: TextInputAction.search,
+                    style: const TextStyle(color: AppColors.textoPrincipal),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      hintText: 'Buscar modelo, color o código',
+                      prefixIcon: const Icon(Icons.search, color: AppColors.textoAtenuado),
+                      suffixIcon: _busqueda.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              tooltip: 'Borrar búsqueda',
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => _busqueda = '');
+                              },
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(28),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                IconButton(
+                  tooltip: 'Filtros',
+                  color: Colors.white,
+                  onPressed: () => _mostrarFiltrosAvanzados(conteoColores),
+                  icon: Badge(
+                    isLabelVisible: activos > 0,
+                    label: Text('$activos'),
+                    backgroundColor: AppColors.dorado,
+                    textColor: AppColors.azul,
+                    child: const Icon(Icons.tune),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
 
           // Selector de categorías
-          SizedBox(
-            height: 36,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
               children: _categorias.map((c) {
                 final selected = c == _categoriaSeleccionada;
                 return Padding(
@@ -541,127 +439,9 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                     ),
                     labelStyle: TextStyle(
                       color: selected ? AppColors.azul : Colors.white,
-                      fontSize: 12,
                       fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                     ),
                     onSelected: (_) => setState(() => _categoriaSeleccionada = c),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Selector de modelo
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _modeloSeleccionado,
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.dorado),
-                  items: _modelos
-                      .map((m) => DropdownMenuItem(
-                            value: m,
-                            child: Text(m == 'todos' ? 'Todos los modelos de iPhone' : m),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => _modeloSeleccionado = v ?? 'todos'),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // REQUERIMIENTO 5: FILTRADO MULTICOLOR DINÁMICO (paleta ampliada con selección múltiple)
-          Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 4),
-            child: Row(
-              children: [
-                const Text(
-                  'COLORES DISPONIBLES (SELECCIÓN MÚLTIPLE):',
-                  style: TextStyle(
-                    color: AppColors.doradoClaro,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                if (_coloresSeleccionados.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => setState(() => _coloresSeleccionados.clear()),
-                    child: const Text(
-                      'Limpiar filtros',
-                      style: TextStyle(color: Colors.white70, fontSize: 10, decoration: TextDecoration.underline),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 32,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: conteoColores.entries.map((entry) {
-                final hex = entry.key;
-                final count = entry.value;
-                final isSelected = _coloresSeleccionados.contains(hex);
-                final colorVisual = _parseHex(hex);
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    selected: isSelected,
-                    showCheckmark: false,
-                    color: WidgetStateProperty.resolveWith<Color?>((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return AppColors.dorado;
-                      }
-                      return const Color(0xFF13315C);
-                    }),
-                    side: BorderSide(
-                      color: isSelected ? AppColors.dorado : Colors.white.withValues(alpha: 0.25),
-                      width: 1,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    avatar: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: colorVisual,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: hex == '#FFFFFF' || hex == '#E5E7EB' ? Colors.black38 : Colors.white60,
-                          width: 0.8,
-                        ),
-                      ),
-                    ),
-                    label: Text(
-                      '${_nombreColorLegible(hex)} ($count)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isSelected ? AppColors.azul : Colors.white,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      ),
-                    ),
-                    onSelected: (val) {
-                      setState(() {
-                        if (val) {
-                          _coloresSeleccionados.add(hex);
-                        } else {
-                          _coloresSeleccionados.remove(hex);
-                        }
-                      });
-                    },
                   ),
                 );
               }).toList(),

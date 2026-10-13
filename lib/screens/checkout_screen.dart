@@ -30,68 +30,76 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     final carrito = context.watch<CarritoProvider>();
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Confirmar pedido')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Datos para el pedido', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _nombreController,
-                decoration: const InputDecoration(labelText: 'Tu nombre'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresá tu nombre' : null,
-              ),
-              const SizedBox(height: 16),
-              const Text('Forma de pago', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ValueListenableBuilder<String>(
-                valueListenable: _formaPago,
-                builder: (context, value, _) => Column(
-                  children: [
-                    RadioListTile<String>(
-                      value: 'efectivo',
-                      groupValue: value,
-                      title: const Text('Efectivo'),
-                      onChanged: (v) {
-                        if (v != null) _formaPago.value = v;
-                      },
-                    ),
-                    RadioListTile<String>(
-                      value: 'transferencia',
-                      groupValue: value,
-                      title: const Text('Transferencia'),
-                      onChanged: (v) {
-                        if (v != null) _formaPago.value = v;
-                      },
-                    ),
-                  ],
+    return PopScope(
+      canPop: !_procesando,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(title: const Text('Confirmar pedido')),
+        body: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                const Text('Datos para el pedido', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _nombreController,
+                  decoration: const InputDecoration(labelText: 'Tu nombre'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresá tu nombre' : null,
                 ),
-              ),
-              const Spacer(),
-              const Text(
-                'Al confirmar se descontará el stock en Firebase y se abrirá WhatsApp para coordinar la entrega.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: _procesando
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.chat_bubble_outline),
-                  label: Text(_procesando ? 'Procesando stock...' : 'Enviar pedido por WhatsApp'),
-                  onPressed: _procesando ? null : () => _confirmarPedido(carrito),
+                const SizedBox(height: 16),
+                const Text('Forma de pago', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ValueListenableBuilder<String>(
+                  valueListenable: _formaPago,
+                  builder: (context, value, _) => Column(
+                    children: [
+                      RadioListTile<String>(
+                        value: 'efectivo',
+                        groupValue: value,
+                        title: const Text('Efectivo'),
+                        onChanged: (v) {
+                          if (v != null) _formaPago.value = v;
+                        },
+                      ),
+                      RadioListTile<String>(
+                        value: 'transferencia',
+                        groupValue: value,
+                        title: const Text('Transferencia'),
+                        onChanged: (v) {
+                          if (v != null) _formaPago.value = v;
+                        },
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Al confirmar se descontará el stock en Firebase y se abrirá WhatsApp para coordinar la entrega.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+        bottomNavigationBar: Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+          child: SafeArea(
+            minimum: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: _procesando
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.chat_bubble_outline),
+                label: Text(_procesando ? 'Procesando stock...' : 'Enviar pedido por WhatsApp'),
+                onPressed: _procesando ? null : () => _confirmarPedido(carrito),
               ),
-            ],
+            ),
           ),
         ),
       ),

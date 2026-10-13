@@ -19,6 +19,12 @@ class _CarritoScreenState extends State<CarritoScreen> {
   String? _errorCupon;
   bool _validando = false;
 
+  @override
+  void dispose() {
+    _cuponController.dispose();
+    super.dispose();
+  }
+
   Future<void> _aplicarCupon(CarritoProvider carrito) async {
     final codigo = _cuponController.text.trim().toUpperCase();
     if (codigo.isEmpty) return;
@@ -39,27 +45,75 @@ class _CarritoScreenState extends State<CarritoScreen> {
     } catch (e) {
       setState(() => _errorCupon = 'No se pudo validar el cupón');
     } finally {
-      setState(() => _validando = false);
+      if (mounted) setState(() => _validando = false);
     }
+  }
+
+  void _eliminarItem(BuildContext context, CarritoProvider carrito, ItemCarrito item) {
+    final producto = item.producto;
+    final cantidad = item.cantidad;
+    carrito.quitar(producto.id);
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('${producto.nombre} eliminado del carrito'),
+        action: SnackBarAction(
+          label: 'Deshacer',
+          onPressed: () {
+            carrito.agregar(producto);
+            if (cantidad > 1) {
+              carrito.actualizarCantidad(producto.id, cantidad);
+            }
+          },
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tu carrito')),
-      body: Consumer<CarritoProvider>(
-        builder: (context, carrito, _) {
-          if (carrito.items.isEmpty) {
-            return const Center(child: Text('Tu carrito está vacío'));
-          }
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.separated(
+    return Consumer<CarritoProvider>(
+      builder: (context, carrito, _) {
+        final estaVacio = carrito.items.isEmpty;
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('Tu carrito')),
+          body: estaVacio
+              ? const Center(child: Text('Tu carrito está vacío'))
+              : ListView.separated(
                   padding: const EdgeInsets.all(12),
-                  itemCount: carrito.items.length,
+                  itemCount: carrito.items.length + 1,
                   separatorBuilder: (_, __) => const Divider(),
                   itemBuilder: (context, i) {
+                    if (i == carrito.items.length) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _cuponController,
+                                decoration: InputDecoration(
+                                  labelText: 'Código promocional',
+                                  errorText: _errorCupon,
+                                ),
+                                textCapitalization: TextCapitalization.characters,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton(
+                              onPressed: _validando ? null : () => _aplicarCupon(carrito),
+                              child: _validando
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : const Text('Aplicar'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
                     final item = carrito.items[i];
                     return ListTile(
                       title: Text(item.producto.nombre),
@@ -69,7 +123,13 @@ class _CarritoScreenState extends State<CarritoScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: () => carrito.actualizarCantidad(item.producto.id, item.cantidad - 1),
+                            onPressed: () {
+                              if (item.cantidad > 1) {
+                                carrito.actualizarCantidad(item.producto.id, item.cantidad - 1);
+                              } else {
+                                _eliminarItem(context, carrito, item);
+                              }
+                            },
                           ),
                           Text('${item.cantidad}'),
                           IconButton(
@@ -90,64 +150,43 @@ class _CarritoScreenState extends State<CarritoScreen> {
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline),
-                        onPressed: () => carrito.quitar(item.producto.id),
+                        onPressed: () => _eliminarItem(context, carrito, item),
                       ),
                     );
                   },
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _cuponController,
-                        decoration: InputDecoration(
-                          labelText: 'Código promocional',
-                          errorText: _errorCupon,
+          bottomNavigationBar: estaVacio
+              ? null
+              : SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, -2))],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _filaResumen('Subtotal', carrito.subtotal),
+                        if (carrito.cuponAplicado != null)
+                          _filaResumen('Descuento (${carrito.cuponAplicado!.codigo})', -carrito.descuento, color: AppColors.dorado),
+                        const Divider(),
+                        _filaResumen('Total', carrito.total, esTotal: true),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen())),
+                            child: const Text('Continuar al pedido'),
+                          ),
                         ),
-                        textCapitalization: TextCapitalization.characters,
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: _validando ? null : () => _aplicarCupon(carrito),
-                      child: _validando
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Aplicar'),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, -2))],
-                ),
-                child: Column(
-                  children: [
-                    _filaResumen('Subtotal', carrito.subtotal),
-                    if (carrito.cuponAplicado != null)
-                      _filaResumen('Descuento (${carrito.cuponAplicado!.codigo})', -carrito.descuento, color: AppColors.dorado),
-                    const Divider(),
-                    _filaResumen('Total', carrito.total, esTotal: true),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen())),
-                        child: const Text('Continuar al pedido'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+        );
+      },
     );
   }
 

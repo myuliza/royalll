@@ -208,31 +208,23 @@ class _HeroBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () => onNavigate(1),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.dorado,
+                FilledButton.icon(
+                  onPressed: () => onNavigate(1),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    backgroundColor: Theme.of(context).colorScheme.secondary,
+                    foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Ver colección',
-                          style: TextStyle(
-                            color: AppColors.azul,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                        SizedBox(width: 6),
-                        Icon(Icons.arrow_forward, size: 14, color: AppColors.azul),
-                      ],
-                    ),
                   ),
+                  label: const Text('Ver colección'),
+                  icon: const Icon(Icons.arrow_forward, size: 14),
+                  iconAlignment: IconAlignment.end,
                 ),
               ],
             ),
@@ -273,22 +265,24 @@ class _SeccionCategorias extends StatelessWidget {
                   color: AppColors.textoPrincipal,
                 ),
               ),
-              GestureDetector(
-                onTap: () => onNavigate(1),
-                child: const Text(
-                  'Ver todas →',
-                  style: TextStyle(
+              TextButton(
+                onPressed: () => onNavigate(1),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  textStyle: const TextStyle(
                     fontSize: 13,
-                    color: AppColors.dorado,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                child: const Text('Ver todas →'),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
             children: _cats
                 .map((c) => _CatChip(item: c, onNavigate: onNavigate))
                 .toList(),
@@ -315,36 +309,41 @@ class _CatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onNavigate(1),
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.azul.withValues(alpha: 0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+    final colores = Theme.of(context).colorScheme;
+
+    return Material(
+      color: colores.surface,
+      elevation: 2,
+      shadowColor: colores.primary.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => onNavigate(1),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 80, minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 64,
+                  height: 48,
+                  child: Icon(item.icon, color: colores.primary, size: 28),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: colores.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
-            child: Icon(item.icon, color: AppColors.azul, size: 28),
           ),
-          const SizedBox(height: 8),
-          Text(
-            item.label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textoSecundario,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -373,16 +372,17 @@ class _SeccionPopulares extends StatelessWidget {
                   color: AppColors.textoPrincipal,
                 ),
               ),
-              GestureDetector(
-                onTap: () => onNavigate(1),
-                child: const Text(
-                  'Ver todas →',
-                  style: TextStyle(
+              TextButton(
+                onPressed: () => onNavigate(1),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  textStyle: const TextStyle(
                     fontSize: 13,
-                    color: AppColors.dorado,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                child: const Text('Ver todas →'),
               ),
             ],
           ),
