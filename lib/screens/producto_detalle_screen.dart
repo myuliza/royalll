@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/producto.dart';
 import '../providers/carrito_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_product_image.dart';
-import 'carrito_screen.dart';
 import 'catalogo_screen.dart';
-import '../widgets/theme_toggle_button.dart';
 
 class ProductoDetalleScreen extends StatelessWidget {
   final Producto producto;
@@ -32,7 +31,6 @@ class ProductoDetalleScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(producto.nombre),
-        actions: const [ThemeToggleButton()],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -225,6 +223,7 @@ class ProductoDetalleScreen extends StatelessWidget {
                   // Capturados antes del pop: el SnackBar sobrevive a esta pantalla
                   final messenger = ScaffoldMessenger.of(context);
                   final navigator = Navigator.of(context);
+                  final router = GoRouter.of(context);
                   messenger.hideCurrentSnackBar();
                   if (exito) {
                     HapticFeedback.lightImpact();
@@ -235,12 +234,7 @@ class ProductoDetalleScreen extends StatelessWidget {
                         content: Text('${producto.nombre} agregado al carrito'),
                         action: SnackBarAction(
                           label: 'Ver carrito',
-                          onPressed: () {
-                            if (!navigator.mounted) return;
-                            navigator.push(
-                              MaterialPageRoute(builder: (_) => const CarritoScreen()),
-                            );
-                          },
+                          onPressed: () => router.go('/carrito'),
                         ),
                       ),
                     );

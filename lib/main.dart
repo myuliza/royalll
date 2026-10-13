@@ -5,7 +5,10 @@ import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'providers/carrito_provider.dart';
-import 'screens/home_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'app_router.dart';
+import 'providers/busqueda_catalogo.dart';
+import 'providers/empleado_sesion.dart';
 
 import 'utils/catalogo_seeder.dart';
 
@@ -26,8 +29,21 @@ Future<void> main() async {
   runApp(const RoyalApp());
 }
 
-class RoyalApp extends StatelessWidget {
+class RoyalApp extends StatefulWidget {
   const RoyalApp({super.key});
+
+  @override
+  State<RoyalApp> createState() => _RoyalAppState();
+}
+
+class _RoyalAppState extends State<RoyalApp> {
+  late final GoRouter _router = crearRouter();
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,16 +51,18 @@ class RoyalApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CarritoProvider()),
         ChangeNotifierProvider(create: (_) => ThemeController()),
+        ChangeNotifierProvider(create: (_) => EmpleadoSesion()),
+        ChangeNotifierProvider(create: (_) => BusquedaCatalogo()),
       ],
       child: Consumer<ThemeController>(
-        builder: (context, tema, _) => MaterialApp(
+        builder: (context, tema, _) => MaterialApp.router(
           title: 'Royal',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: tema.modo,
           themeAnimationDuration: AppDurations.lenta,
-          home: const HomeScreen(),
+          routerConfig: _router,
         ),
       ),
     );

@@ -1,80 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 import '../models/producto.dart';
 import '../theme/app_theme.dart';
 import '../widgets/producto_card.dart';
-import 'catalogo_screen.dart';
-import 'carrito_screen.dart';
-import 'faq_screen.dart';
-import 'empleado_login_screen.dart';
-import '../widgets/royal_logo.dart';
-import '../widgets/theme_toggle_button.dart';
 
-class HomeScreen extends StatefulWidget {
+/// Sección Inicio. La navegación entre secciones la maneja el router (AppShell).
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _tabIndex = 0;
-
-  void _goToTab(int index) {
-    setState(() => _tabIndex = index);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tabs = [
-      _HomeTab(onNavigate: _goToTab),
-      const CatalogoScreen(),
-      const CarritoScreen(),
-      const FaqScreen(),
-    ];
-
-    return Scaffold(
-      body: IndexedStack(
-        index: _tabIndex,
-        children: tabs,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tabIndex,
-        onDestinationSelected: _goToTab,
-        backgroundColor: Colors.white,
-        indicatorColor: AppColors.dorado.withValues(alpha: 0.18),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: AppColors.dorado),
-            label: 'Inicio',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view, color: AppColors.dorado),
-            label: 'Catálogo',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag, color: AppColors.dorado),
-            label: 'Carrito',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.help_outline),
-            selectedIcon: Icon(Icons.help, color: AppColors.dorado),
-            label: 'FAQ',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HomeTab extends StatelessWidget {
-  final void Function(int) onNavigate;
-
-  const _HomeTab({required this.onNavigate});
+  void onNavigate(BuildContext context, int _) => context.go('/catalogo');
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +17,6 @@ class _HomeTab extends StatelessWidget {
       backgroundColor: AppColors.fondo,
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(context),
           SliverToBoxAdapter(
             child: Center(
               child: ConstrainedBox(
@@ -90,9 +24,9 @@ class _HomeTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _HeroBanner(onNavigate: onNavigate),
-                    _SeccionCategorias(onNavigate: onNavigate),
-                    _SeccionPopulares(onNavigate: onNavigate),
+                    _HeroBanner(onNavigate: (i) => onNavigate(context, i)),
+                    _SeccionCategorias(onNavigate: (i) => onNavigate(context, i)),
+                    _SeccionPopulares(onNavigate: (i) => onNavigate(context, i)),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -101,32 +35,6 @@ class _HomeTab extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  SliverAppBar _buildAppBar(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 800;
-    final logoSize = isWide ? 64.0 : 44.0;
-    final barHeight = isWide ? 80.0 : 64.0;
-    return SliverAppBar(
-      backgroundColor: AppColors.azul,
-      foregroundColor: Colors.white,
-      floating: true,
-      snap: true,
-      centerTitle: true,
-      toolbarHeight: barHeight,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.lock_outline, size: 20),
-          tooltip: 'Acceso empleado',
-onPressed: () => Navigator.push(
-  context,
-  MaterialPageRoute(builder: (_) => const EmpleadoLoginScreen()),
-),
-        ),
-        const ThemeToggleButton(),
-      ],
-      title: RoyalLogo(size: logoSize, isLight: true, imagePath: 'assets/logo royal.png'),
     );
   }
 }

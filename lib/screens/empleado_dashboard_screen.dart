@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 import '../models/producto.dart';
 import '../theme/app_theme.dart';
 import '../utils/catalogo_seeder.dart';
 import '../widgets/app_product_image.dart';
-import '../widgets/theme_toggle_button.dart';
 
 class EmpleadoDashboardScreen extends StatefulWidget {
   const EmpleadoDashboardScreen({super.key});
@@ -841,7 +841,13 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
 
   Future<void> _cerrarSesion() async {
     await FirebaseAuth.instance.signOut();
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    // Dentro de la app (sección Empleados) no hay pantalla anterior: se vuelve al Inicio
+    if (Navigator.of(context).canPop()) {
+      Navigator.pop(context);
+    } else {
+      context.go('/inicio');
+    }
   }
 
   /// Quitar el foco antes de cambiar de sección dispara el guardado on-blur de las tarjetas editables
@@ -950,7 +956,6 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
               tooltip: 'Cerrar sesión',
               onPressed: _cerrarSesion,
             ),
-            const ThemeToggleButton(),
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(

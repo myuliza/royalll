@@ -5,7 +5,11 @@ import 'empleado_dashboard_screen.dart';
 import '../widgets/theme_toggle_button.dart';
 
 class EmpleadoLoginScreen extends StatefulWidget {
-  const EmpleadoLoginScreen({super.key});
+  /// Si se indica, la pantalla está dentro de la app (sección Empleados): al ingresar
+  /// se llama a este callback en lugar de reemplazar la pantalla por el panel.
+  final VoidCallback? onIngresoExitoso;
+
+  const EmpleadoLoginScreen({super.key, this.onIngresoExitoso});
 
   @override
   State<EmpleadoLoginScreen> createState() => _EmpleadoLoginScreenState();
@@ -63,7 +67,9 @@ class _EmpleadoLoginScreenState extends State<EmpleadoLoginScreen> {
         return;
       }
 
-      if (mounted) {
+      if (mounted && widget.onIngresoExitoso != null) {
+        widget.onIngresoExitoso!();
+      } else if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const EmpleadoDashboardScreen()),
@@ -87,10 +93,12 @@ class _EmpleadoLoginScreenState extends State<EmpleadoLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Acceso Empleado'),
-        actions: const [ThemeToggleButton()],
-      ),
+      appBar: widget.onIngresoExitoso != null
+          ? null
+          : AppBar(
+              title: const Text('Acceso Empleado'),
+              actions: const [ThemeToggleButton()],
+            ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

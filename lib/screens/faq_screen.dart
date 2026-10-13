@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../theme/app_theme.dart';
-import '../widgets/theme_toggle_button.dart';
 
 class FaqScreen extends StatefulWidget {
   const FaqScreen({super.key});
@@ -85,7 +84,6 @@ class _FaqScreenState extends State<FaqScreen> {
         backgroundColor: AppColors.azul,
         foregroundColor: Colors.white,
         centerTitle: true,
-        actions: const [ThemeToggleButton()],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('faq').snapshots(),

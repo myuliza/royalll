@@ -6,7 +6,6 @@ import '../providers/carrito_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import 'checkout_screen.dart';
-import '../widgets/theme_toggle_button.dart';
 
 class CarritoScreen extends StatefulWidget {
   const CarritoScreen({super.key});
@@ -82,8 +81,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Tu carrito'),
-            actions: const [ThemeToggleButton()],
-          ),
+            ),
           body: estaVacio
               ? const Center(child: Text('Tu carrito está vacío'))
               : ListView.separated(

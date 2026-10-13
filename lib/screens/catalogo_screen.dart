@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../models/producto.dart';
+import '../providers/busqueda_catalogo.dart';
 import '../providers/carrito_provider.dart';
+import '../theme/breakpoints.dart';
 import '../theme/app_theme.dart';
 import '../widgets/producto_card.dart';
-import '../widgets/royal_logo.dart';
 import '../widgets/app_product_image.dart';
 import 'producto_detalle_screen.dart';
-import 'carrito_screen.dart';
-import 'faq_screen.dart';
-import '../widgets/theme_toggle_button.dart';
 
 class CatalogoScreen extends StatefulWidget {
-  const CatalogoScreen({super.key});
+  /// Filtros iniciales que llegan por URL (ej. /catalogo?categoria=transparente).
+  final String? categoria;
+  final String? modelo;
+  final String? especial;
+
+  const CatalogoScreen({super.key, this.categoria, this.modelo, this.especial});
 
   // Paleta completa y estandarizada de colores principales
   static const Map<String, String> _nombresColores = {
@@ -43,9 +46,7 @@ class CatalogoScreen extends StatefulWidget {
 class _CatalogoScreenState extends State<CatalogoScreen> {
   String _categoriaSeleccionada = 'todas';
   String _modeloSeleccionado = 'todos';
-  String _busqueda = '';
   final Set<String> _coloresSeleccionados = {}; // Filtrado multicolor simultáneo
-  final TextEditingController _searchCtrl = TextEditingController();
 
   final List<String> _categorias = [
     'todas',
@@ -78,9 +79,24 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
   ];
 
   @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _aplicarFiltrosDeUrl();
+  }
+
+  @override
+  void didUpdateWidget(covariant CatalogoScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.categoria != widget.categoria ||
+        oldWidget.modelo != widget.modelo ||
+        oldWidget.especial != widget.especial) {
+      _aplicarFiltrosDeUrl();
+    }
+  }
+
+  void _aplicarFiltrosDeUrl() {
+    _categoriaSeleccionada = widget.categoria ?? 'todas';
+    _modeloSeleccionado = widget.modelo ?? 'todos';
   }
 
   String _nombreColorLegible(String hex) => CatalogoScreen.nombreColorLegible(hex);
@@ -324,6 +340,10 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Buscador global (barra superior en escritorio/tablet, campo propio en móvil)
+    final busquedaGlobal = context.watch<BusquedaCatalogo>();
+    final consulta = busquedaGlobal.consulta;
+
     return Scaffold(
       backgroundColor: AppColors.fondo,
       body: StreamBuilder<QuerySnapshot>(
@@ -364,8 +384,8 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
               return false;
             }
             // Búsqueda por texto integrada: modelo, color legible, código de modelo/color
-            if (_busqueda.isNotEmpty) {
-              final q = _busqueda;
+            if (consulta.isNotEmpty) {
+              final q = consulta;
               final matchNombre = p.nombre.toLowerCase().contains(q);
               final matchCodigo = p.codigoColor.toLowerCase().contains(q);
               final matchColorHex = p.colorHex.toLowerCase().contains(q);
@@ -418,7 +438,6 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
 
           return CustomScrollView(
             slivers: [
-              _buildSliverAppBar(context),
               // Barra de filtros con fondo oscuro que se desplaza hacia arriba al hacer scroll
               SliverToBoxAdapter(
                 child: _buildFiltros(conteoColores),
@@ -476,42 +495,6 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
           );
         },
       ),
-    );
-  }
-
-  SliverAppBar _buildSliverAppBar(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 800;
-    final logoSize = isWide ? 64.0 : 44.0;
-    final barHeight = isWide ? 80.0 : 64.0;
-    return SliverAppBar(
-      backgroundColor: AppColors.azul,
-      foregroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: true,
-      floating: true,
-      snap: true,
-      toolbarHeight: barHeight,
-      title: RoyalLogo(size: logoSize, isLight: true, imagePath: 'assets/logo royal.png'),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.help_outline),
-          tooltip: 'Preguntas frecuentes',
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FaqScreen()),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.shopping_bag_outlined),
-          tooltip: 'Carrito',
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CarritoScreen()),
-          ),
-        ),
-        const ThemeToggleButton(),
-        const SizedBox(width: 6),
-      ],
     );
   }
 
@@ -618,6 +601,8 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
 
   Widget _buildFiltros(Map<String, int> conteoColores) {
     final activos = _filtrosAvanzadosActivos;
+    final busqueda = context.read<BusquedaCatalogo>();
+    final mostrarBuscador = Breakpoints.esMovil(context);
     return Container(
       color: AppColors.azul,
       padding: const EdgeInsets.only(bottom: 8),
@@ -629,10 +614,11 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
             padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
             child: Row(
               children: [
+                if (mostrarBuscador)
                 Expanded(
                   child: TextField(
-                    controller: _searchCtrl,
-                    onChanged: (v) => setState(() => _busqueda = v.trim().toLowerCase()),
+                    controller: busqueda.controller,
+                    focusNode: busqueda.focoCatalogo,
                     textInputAction: TextInputAction.search,
                     style: const TextStyle(color: AppColors.textoPrincipal),
                     decoration: InputDecoration(
@@ -640,14 +626,11 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                       fillColor: Colors.white,
                       hintText: 'Buscar modelo, color o código',
                       prefixIcon: const Icon(Icons.search, color: AppColors.textoAtenuado),
-                      suffixIcon: _busqueda.isNotEmpty
+                      suffixIcon: busqueda.consulta.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear),
                               tooltip: 'Borrar búsqueda',
-                              onPressed: () {
-                                _searchCtrl.clear();
-                                setState(() => _busqueda = '');
-                              },
+                              onPressed: busqueda.limpiar,
                             )
                           : null,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -657,7 +640,9 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                       ),
                     ),
                   ),
-                ),
+                )
+                else
+                  const Spacer(),
                 IconButton(
                   tooltip: 'Filtros',
                   color: Colors.white,
