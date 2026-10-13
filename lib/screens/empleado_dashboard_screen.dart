@@ -6,6 +6,11 @@ import '../models/producto.dart';
 import '../theme/app_theme.dart';
 import '../utils/catalogo_seeder.dart';
 import '../widgets/app_product_image.dart';
+import '../widgets/ui/ui.dart';
+import 'empleado/ventas_tab.dart';
+
+/// Acento legible según el tema (azul oscuro en claro, cyan en oscuro).
+Color _acento(BuildContext context) => context.esOscuro ? AppColors.doradoClaro : AppColors.azul;
 
 class EmpleadoDashboardScreen extends StatefulWidget {
   const EmpleadoDashboardScreen({super.key});
@@ -19,7 +24,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
   String _busqueda = '';
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
-  int _seccion = 0; // 0 = Servicios, 1 = Productos
+  int _seccion = 0; // 0 = Ventas, 1 = Servicios, 2 = Productos
   String _filtroEspecial = ''; // 'sinStock' | 'stockBajo' | 'descuento'
   static const int _umbralStockBajo = 3;
 
@@ -283,7 +288,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Row(
                 children: [
-                  const Icon(Icons.photo_camera_outlined, color: AppColors.azul),
+                  Icon(Icons.photo_camera_outlined, color: _acento(context)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -304,9 +309,9 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                         width: 140,
                         height: 140,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF9FAFB),
+                          color: context.royal.fondoImagen,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.bordeSuave),
+                          border: Border.all(color: context.royal.borde),
                         ),
                         child: AppProductImage(
                           imageUrl: urlActual,
@@ -378,8 +383,8 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                   icon: const Icon(Icons.check, size: 16),
                   label: const Text('Guardar Foto'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.azul,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.dorado,
+                    foregroundColor: AppColors.azul,
                   ),
                   onPressed: () async {
                     final nuevaUrl = urlCtrl.text.trim();
@@ -428,9 +433,9 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
         return StatefulBuilder(
           builder: (sheetCtx, setModalState) {
             return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: context.royal.superficie,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               padding: EdgeInsets.only(
                 top: 20,
@@ -449,16 +454,16 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.add_circle_outline, color: AppColors.azul, size: 24),
-                              SizedBox(width: 8),
+                              Icon(Icons.add_circle_outline, color: _acento(context), size: 24),
+                              const SizedBox(width: 8),
                               Text(
                                 'Agregar Nueva Funda',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.textoPrincipal,
+                                  color: context.royal.textoPrincipal,
                                 ),
                               ),
                             ],
@@ -544,7 +549,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                             labelStyle: TextStyle(
                               fontSize: 11,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                              color: isSelected ? AppColors.azul : AppColors.textoPrincipal,
+                              color: isSelected ? AppColors.azul : context.royal.textoPrincipal,
                             ),
                             onSelected: (selected) {
                               if (selected) {
@@ -726,13 +731,13 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  child: CircularProgressIndicator(color: AppColors.azul, strokeWidth: 2),
                                 )
                               : const Icon(Icons.cloud_upload),
                           label: Text(guardando ? 'Guardando en Firebase...' : 'Crear y Publicar Funda'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.azul,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.dorado,
+                            foregroundColor: AppColors.azul,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -860,7 +865,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
   void _irAProductos({String categoria = 'todas', String filtroEspecial = '', bool buscar = false}) {
     _searchController.clear();
     setState(() {
-      _seccion = 1;
+      _seccion = 2;
       _categoriaFiltro = categoria;
       _filtroEspecial = filtroEspecial;
       _busqueda = '';
@@ -901,15 +906,21 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
     return productos;
   }
 
+  static const _secciones = [
+    (Icons.insights_outlined, 'Ventas'),
+    (Icons.dashboard_outlined, 'Servicios'),
+    (Icons.inventory_2_outlined, 'Productos'),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final usarRail = MediaQuery.sizeOf(context).width >= 840;
+    final royal = context.royal;
 
     final contenido = StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('productos').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Center(child: Text('Error al sincronizar con Firebase'));
+          return const EmptyState.error(titulo: 'Error al sincronizar con Firebase');
         }
         if (!snapshot.hasData) {
           return const Center(
@@ -925,95 +936,109 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
         return IndexedStack(
           index: _seccion,
           sizing: StackFit.expand,
-          children: [_buildServicios(todos), _buildProductos(todos)],
+          children: [VentasTab(productos: todos), _buildServicios(todos), _buildProductos(todos)],
         );
       },
     );
 
-    // Atrás desde Productos vuelve a Servicios antes de salir del panel
+    // Atrás desde Productos vuelve a Servicios; desde Servicios, a Ventas; luego sale del panel
     return PopScope(
       canPop: _seccion == 0,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _cambiarSeccion(0);
+        if (!didPop) _cambiarSeccion(_seccion == 2 ? 1 : 0);
       },
       child: Scaffold(
-        backgroundColor: AppColors.fondo,
-        appBar: AppBar(
-          backgroundColor: AppColors.azul,
-          foregroundColor: Colors.white,
-          title: const Text(
-            'Panel Empleado',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.storage_rounded),
-              tooltip: 'Mantenimiento de datos',
-              onPressed: _abrirMenuDatos,
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Cerrar sesión',
-              onPressed: _cerrarSesion,
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          backgroundColor: AppColors.dorado,
-          foregroundColor: Colors.white,
-          icon: const Icon(Icons.add),
-          label: const Text('Nueva Funda', style: TextStyle(fontWeight: FontWeight.bold)),
-          onPressed: _mostrarModalCrearFunda,
-        ),
-        bottomNavigationBar: usarRail
-            ? null
-            : NavigationBar(
-                selectedIndex: _seccion,
-                onDestinationSelected: _cambiarSeccion,
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.dashboard_outlined),
-                    selectedIcon: Icon(Icons.dashboard),
-                    label: 'Servicios',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.inventory_2_outlined),
-                    selectedIcon: Icon(Icons.inventory_2),
-                    label: 'Productos',
-                  ),
-                ],
+        floatingActionButton: _seccion == 1 || _seccion == 2
+            ? FloatingActionButton.extended(
+                backgroundColor: AppColors.dorado,
+                foregroundColor: AppColors.azul,
+                icon: const Icon(Icons.add),
+                label: const Text('Nueva Funda', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: _mostrarModalCrearFunda,
+              )
+            : null,
+        body: Column(
+          children: [
+            // Encabezado del panel: título, acciones y pestañas de sección
+            Container(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.sm, AppSpacing.md),
+              decoration: BoxDecoration(
+                color: royal.fondo,
+                border: Border(bottom: BorderSide(color: royal.borde)),
               ),
-        body: usarRail
-            ? Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Menú lateral azul oscuro en pantallas anchas
-                  NavigationRail(
-                    backgroundColor: AppColors.azulProfundo,
-                    selectedIndex: _seccion,
-                    onDestinationSelected: _cambiarSeccion,
-                    labelType: NavigationRailLabelType.all,
-                    indicatorColor: AppColors.dorado,
-                    selectedIconTheme: const IconThemeData(color: AppColors.azul),
-                    unselectedIconTheme: const IconThemeData(color: Colors.white70),
-                    selectedLabelTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                    unselectedLabelTextStyle: const TextStyle(color: Colors.white70),
-                    destinations: const [
-                      NavigationRailDestination(
-                        icon: Icon(Icons.dashboard_outlined),
-                        selectedIcon: Icon(Icons.dashboard),
-                        label: Text('Servicios'),
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(colors: AppColors.degradadoCyan),
+                        ),
+                        child: const Icon(Icons.admin_panel_settings_outlined, color: Colors.white),
                       ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.inventory_2_outlined),
-                        selectedIcon: Icon(Icons.inventory_2),
-                        label: Text('Productos'),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Panel Empleado',
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: royal.textoPrincipal),
+                            ),
+                            Text(
+                              'Ventas, catálogo, stock y promociones',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12, color: royal.textoSecundario),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.storage_rounded),
+                        tooltip: 'Mantenimiento de datos',
+                        onPressed: _abrirMenuDatos,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.logout),
+                        tooltip: 'Cerrar sesión',
+                        onPressed: _cerrarSesion,
                       ),
                     ],
                   ),
-                  Expanded(child: contenido),
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _secciones.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, i) {
+                        final activa = i == _seccion;
+                        return ChoiceChip(
+                          avatar: Icon(_secciones[i].$1, size: 18, color: activa ? AppColors.azul : royal.textoSecundario),
+                          label: Text(_secciones[i].$2),
+                          selected: activa,
+                          showCheckmark: false,
+                          labelStyle: TextStyle(
+                            color: activa ? AppColors.azul : royal.textoPrincipal,
+                            fontWeight: activa ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                          onSelected: (_) => _cambiarSeccion(i),
+                        );
+                      },
+                    ),
+                  ),
                 ],
-              )
-            : contenido,
+              ),
+            ),
+            Expanded(child: contenido),
+          ],
+        ),
       ),
     );
   }
@@ -1038,7 +1063,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
 
     final accesos = [
       _AccesoRapido('Nueva funda', Icons.add_rounded, AppColors.dorado, _mostrarModalCrearFunda),
-      _AccesoRapido('Productos', Icons.inventory_2_outlined, AppColors.azul, () => _irAProductos()),
+      _AccesoRapido('Productos', Icons.inventory_2_outlined, const Color(0xFF0369A1), () => _irAProductos()),
       _AccesoRapido('Buscar', Icons.search_rounded, const Color(0xFF5B4FCF), () => _irAProductos(buscar: true)),
       _AccesoRapido('Sólidas', Icons.circle, const Color(0xFF0F766E), () => _irAProductos(categoria: 'solido')),
       _AccesoRapido('Transparentes', Icons.blur_on_rounded, const Color(0xFF64748B),
@@ -1052,12 +1077,12 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final ancho = constraints.maxWidth;
-        const espacio = 12.0;
+        const espacio = 16.0;
         final anchoUtil = ancho - 32;
         final columnasDestacadas = ancho >= 840 ? 4 : 2;
-        final columnasAccesos = ancho >= 840 ? 8 : (ancho >= 600 ? 6 : (ancho >= 360 ? 4 : 3));
+        final columnasAccesos = ancho >= 1100 ? 8 : (ancho >= 840 ? 6 : (ancho >= 520 ? 4 : 3));
         final anchoDestacada = (anchoUtil - espacio * (columnasDestacadas - 1)) / columnasDestacadas;
-        final anchoAcceso = (anchoUtil - 8 * (columnasAccesos - 1)) / columnasAccesos;
+        final anchoAcceso = (anchoUtil - 12 * (columnasAccesos - 1)) / columnasAccesos;
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 96),
@@ -1066,24 +1091,36 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
             const SizedBox(height: 4),
             Text(
               'Gestioná el catálogo, el stock y las promociones desde un solo lugar.',
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.textoSecundario),
+              style: textTheme.bodyMedium?.copyWith(color: context.royal.textoSecundario),
             ),
             const SizedBox(height: 20),
             Wrap(
               spacing: espacio,
               runSpacing: espacio,
               children: destacadas
-                  .map((d) => SizedBox(width: anchoDestacada, child: _TarjetaDestacada(servicio: d)))
+                  .map((d) => SizedBox(
+                        width: anchoDestacada,
+                        child: FeatureTile(
+                          titulo: d.titulo,
+                          icono: d.icono,
+                          degradado: [Color.lerp(d.color, Colors.white, 0.18)!, d.color],
+                          contador: '${d.contador}',
+                          onTap: d.onTap,
+                        ),
+                      ))
                   .toList(),
             ),
             const SizedBox(height: 28),
             Text('Accesos rápidos', style: textTheme.titleMedium),
             const SizedBox(height: 12),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 12,
+              runSpacing: 12,
               children: accesos
-                  .map((a) => SizedBox(width: anchoAcceso, child: _BotonAccesoRapido(acceso: a)))
+                  .map((a) => SizedBox(
+                        width: anchoAcceso,
+                        child: IconTile(titulo: a.titulo, icono: a.icono, color: a.color, onTap: a.onTap),
+                      ))
                   .toList(),
             ),
           ],
@@ -1113,7 +1150,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
       children: [
         // Buscador integrado por modelo, color y código de producto
         Container(
-          color: Colors.white,
+          color: context.royal.superficie,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Column(
             children: [
@@ -1159,9 +1196,10 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                     return ChoiceChip(
                       label: Text(_labelCategoria(cat)),
                       selected: isSelected,
-                      selectedColor: AppColors.azul,
+                      selectedColor: AppColors.dorado,
+                      showCheckmark: false,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textoPrincipal,
+                        color: isSelected ? AppColors.azul : context.royal.textoPrincipal,
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       ),
@@ -1248,108 +1286,6 @@ class _AccesoRapido {
   final Color color;
   final VoidCallback onTap;
   const _AccesoRapido(this.titulo, this.icono, this.color, this.onTap);
-}
-
-/// Tarjeta grande de color con ícono y contador (estilo dashboard)
-class _TarjetaDestacada extends StatelessWidget {
-  final _ServicioDestacado servicio;
-  const _TarjetaDestacada({required this.servicio});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: servicio.color,
-      elevation: 2,
-      shadowColor: servicio.color.withValues(alpha: 0.4),
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: servicio.onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 112),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(servicio.icono, color: Colors.white),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${servicio.contador}',
-                        style: TextStyle(color: servicio.color, fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  servicio.titulo,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Botón de acceso rápido: ícono en círculo de color + nombre
-class _BotonAccesoRapido extends StatelessWidget {
-  final _AccesoRapido acceso;
-  const _BotonAccesoRapido({required this.acceso});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: acceso.onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: acceso.color.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(acceso.icono, color: acceso.color),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              acceso.titulo,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Tarjeta de empleado con inputs en línea: Nombre, Código de Modelo/Color, URL de Foto,
@@ -1444,9 +1380,9 @@ class _EmpleadoProductoEditableCardState extends State<_EmpleadoProductoEditable
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.royal.superficie,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.bordeSuave),
+        border: Border.all(color: context.royal.borde),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -1541,7 +1477,7 @@ class _EmpleadoProductoEditableCardState extends State<_EmpleadoProductoEditable
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.photo_library_outlined, size: 18, color: AppColors.azul),
+                              icon: Icon(Icons.photo_library_outlined, size: 18, color: _acento(context)),
                               tooltip: 'Elegir foto del catálogo o previsualizar',
                               onPressed: widget.onEditarFoto,
                             ),
@@ -1570,9 +1506,9 @@ class _EmpleadoProductoEditableCardState extends State<_EmpleadoProductoEditable
                       width: 90,
                       height: 90,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF9FAFB),
+                        color: context.royal.fondoImagen,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.bordeSuave),
+                        border: Border.all(color: context.royal.borde),
                       ),
                       child: AppProductImage(
                         imageUrl: _fotoCtrl.text.trim().isNotEmpty
@@ -1614,17 +1550,17 @@ class _EmpleadoProductoEditableCardState extends State<_EmpleadoProductoEditable
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.fondo,
+                    color: context.royal.superficieAlta,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.bordeSuave),
+                    border: Border.all(color: context.royal.borde),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.azul),
+                      Icon(Icons.inventory_2_outlined, size: 14, color: _acento(context)),
                       const SizedBox(width: 6),
                       Text(
                         'Stock: ${p.stock} un.',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.azul),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _acento(context)),
                       ),
                     ],
                   ),
@@ -1654,7 +1590,7 @@ class _EmpleadoProductoEditableCardState extends State<_EmpleadoProductoEditable
                       decoration: BoxDecoration(
                         color: tieneDescuento
                             ? AppColors.rojoDescuento.withValues(alpha: 0.12)
-                            : AppColors.fondo,
+                            : context.royal.superficieAlta,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(

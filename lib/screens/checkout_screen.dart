@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_config.dart';
+import '../models/venta.dart';
 import '../utils/formatters.dart';
 import '../providers/carrito_provider.dart';
 import '../theme/app_theme.dart';
@@ -248,7 +249,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
       });
 
-      // 3. Armar mensaje de WhatsApp con formato centralizado
+      // 3. Registrar la venta para el dashboard de empleados (colección `ventas`).
+      // No se espera la respuesta: si falla (sin conexión o reglas sin publicar), el pedido sigue igual.
+      FirebaseFirestore.instance
+          .collection('ventas')
+          .add(Venta.nuevaDesdeCarrito(
+            carrito,
+            cliente: _nombreController.text.trim(),
+            formaPago: _formaPago.value,
+          ))
+          .catchError((Object e) {
+        debugPrint('No se pudo registrar la venta: $e');
+        return FirebaseFirestore.instance.collection('ventas').doc();
+      });
+
+      // 4. Armar mensaje de WhatsApp con formato centralizado
       final buffer = StringBuffer();
       buffer.writeln('¡Hola ${AppConfig.appName}! Quiero confirmar este pedido:');
       buffer.writeln();

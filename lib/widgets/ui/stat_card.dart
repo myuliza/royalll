@@ -54,7 +54,7 @@ class StatCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   titulo,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textoSuave),
                 ),
@@ -80,27 +80,28 @@ class StatCard extends StatelessWidget {
           ),
           if (variacion != null) ...[
             const SizedBox(height: AppSpacing.xs),
-            Row(
+            // Si no entra en una línea, el texto de comparación baja (nunca se corta)
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              runSpacing: 2,
               children: [
-                Icon(
-                  sube ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                  size: 16,
-                  color: colorVariacion,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      sube ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                      size: 16,
+                      color: colorVariacion,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${sube ? '+' : ''}${variacion!.toStringAsFixed(1).replaceAll('.', ',')} %',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: colorVariacion),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '${sube ? '+' : ''}${variacion!.toStringAsFixed(1).replaceAll('.', ',')} %',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: colorVariacion),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    textoVariacion,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: textoSuave),
-                  ),
-                ),
+                Text(textoVariacion, style: TextStyle(fontSize: 11, color: textoSuave)),
               ],
             ),
           ],
