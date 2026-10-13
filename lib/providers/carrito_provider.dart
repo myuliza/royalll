@@ -20,8 +20,22 @@ class CarritoProvider extends ChangeNotifier {
 
   int get subtotal => _items.values.fold(0, (s, i) => s + i.subtotal);
 
-  int get descuento =>
-      _cuponAplicado != null ? _cuponAplicado!.calcularDescuento(subtotal) : 0;
+  /// Subtotal de los productos a los que aplica el código (todo, categorías o modelos).
+  int get subtotalAplicable {
+    final c = _cuponAplicado;
+    if (c == null) return 0;
+    return _items.values
+        .where((i) => c.aplicaAProducto(i.producto.categoria, i.producto.modelosCompatibles))
+        .fold(0, (s, i) => s + i.subtotal);
+  }
+
+  /// Motivo por el que el código aplicado dejó de valer (p. ej. se quitó un producto y ya no
+  /// llega a la compra mínima). Mientras haya motivo, el descuento es 0.
+  String? get avisoCupon => _cuponAplicado?.motivoInvalido(subtotal: subtotal, subtotalAplicable: subtotalAplicable);
+
+  int get descuento => _cuponAplicado != null && avisoCupon == null
+      ? _cuponAplicado!.calcularDescuento(subtotalAplicable)
+      : 0;
 
   int get total => (subtotal - descuento).clamp(0, subtotal);
 

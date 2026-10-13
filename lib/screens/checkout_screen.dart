@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_config.dart';
+import '../models/cupon.dart';
 import '../models/venta.dart';
 import '../utils/formatters.dart';
 import '../providers/carrito_provider.dart';
@@ -224,27 +225,55 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _procesando = true);
 
     try {
-      // 1. TRANSACCIÓN RIGUROSA EN FIRESTORE: Descontar stock y validar disponibilidad real
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        for (final item in carrito.items) {
-          final docRef = FirebaseFirestore.instance.collection('productos').doc(item.producto.id);
-          final snapshot = await transaction.get(docRef);
+      // 1. TRANSACCIÓN RIGUROSA EN FIRESTORE: validar stock real y el código promocional, y descontar.
+      // Firestore exige hacer todas las lecturas antes que cualquier escritura.
+      final cuponAplicado = carrito.cuponAplicado;
+      if (cuponAplicado != null && carrito.avisoCupon != null) {
+        throw Exception('${carrito.avisoCupon} Quitá el código en el carrito para continuar.');
+      }
 
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final productos = FirebaseFirestore.instance.collection('productos');
+
+        // 1a. Lecturas: productos y código
+        final lecturas = <(ItemCarrito, DocumentReference<Map<String, dynamic>>, DocumentSnapshot<Map<String, dynamic>>)>[];
+        for (final item in carrito.items) {
+          final docRef = productos.doc(item.producto.id);
+          lecturas.add((item, docRef, await transaction.get(docRef)));
+        }
+        final cuponRef = cuponAplicado == null
+            ? null
+            : FirebaseFirestore.instance.collection('cupones').doc(cuponAplicado.codigo);
+        final cuponSnap = cuponRef == null ? null : await transaction.get(cuponRef);
+
+        // 1b. Validaciones con los datos reales del servidor
+        for (final (item, _, snapshot) in lecturas) {
           if (!snapshot.exists) {
             throw Exception('El producto "${item.producto.nombre}" ya no existe en el catálogo.');
           }
-
           final stockActual = (snapshot.data()?['stock'] as num?)?.toInt() ?? 0;
           if (stockActual < item.cantidad) {
             throw Exception('Stock insuficiente para "${item.producto.nombre}". Quedan solo $stockActual unidades.');
           }
-
-          transaction.update(docRef, {'stock': stockActual - item.cantidad});
+        }
+        if (cuponSnap != null) {
+          if (!cuponSnap.exists) {
+            throw Exception('El código ${cuponAplicado!.codigo} ya no existe. Quitalo del carrito para continuar.');
+          }
+          final cuponActual = Cupon.fromMap({'codigo': cuponAplicado!.codigo, ...cuponSnap.data()!});
+          final motivo = cuponActual.motivoInvalido(
+            subtotal: carrito.subtotal,
+            subtotalAplicable: carrito.subtotalAplicable,
+          );
+          if (motivo != null) throw Exception('$motivo Quitá el código en el carrito para continuar.');
         }
 
-        // 2. Si se aplicó cupón, incrementar usosActuales con FieldValue.increment(1)
-        if (carrito.cuponAplicado != null) {
-          final cuponRef = FirebaseFirestore.instance.collection('cupones').doc(carrito.cuponAplicado!.codigo);
+        // 1c. Escrituras: descontar stock y registrar el uso del código (+1)
+        for (final (item, docRef, snapshot) in lecturas) {
+          final stockActual = (snapshot.data()?['stock'] as num?)?.toInt() ?? 0;
+          transaction.update(docRef, {'stock': stockActual - item.cantidad});
+        }
+        if (cuponRef != null) {
           transaction.update(cuponRef, {'usosActuales': FieldValue.increment(1)});
         }
       });

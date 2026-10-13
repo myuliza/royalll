@@ -30,24 +30,35 @@ class _CarritoScreenState extends State<CarritoScreen> {
   }
 
   Future<void> _aplicarCupon(CarritoProvider carrito) async {
-    final codigo = _cuponController.text.trim().toUpperCase();
+    final codigo = Cupon.normalizarCodigo(_cuponController.text);
     if (codigo.isEmpty) return;
     setState(() { _validando = true; _errorCupon = null; });
 
     try {
       final doc = await FirebaseFirestore.instance.collection('cupones').doc(codigo).get();
       if (!doc.exists) {
-        setState(() => _errorCupon = 'Cupón no encontrado');
+        setState(() => _errorCupon = 'El código "$codigo" no existe.');
         return;
       }
-      final cupon = Cupon.fromMap(doc.data()!);
-      if (!cupon.esValido) {
-        setState(() => _errorCupon = 'Cupón vencido o sin usos disponibles');
+      final cupon = Cupon.fromMap({'codigo': codigo, ...doc.data()!});
+      // Valida estado (activo, vigente, usos), compra mínima y alcance (categorías / modelos)
+      final aplicable = carrito.items
+          .where((i) => cupon.aplicaAProducto(i.producto.categoria, i.producto.modelosCompatibles))
+          .fold(0, (s, i) => s + i.subtotal);
+      final motivo = cupon.motivoInvalido(subtotal: carrito.subtotal, subtotalAplicable: aplicable);
+      if (motivo != null) {
+        setState(() => _errorCupon = motivo);
         return;
       }
       carrito.aplicarCupon(cupon);
+      _cuponController.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Código ${cupon.codigo} aplicado: -${formatPrice(carrito.descuento)}')),
+        );
+      }
     } catch (e) {
-      setState(() => _errorCupon = 'No se pudo validar el cupón');
+      setState(() => _errorCupon = 'No se pudo validar el código. Revisá tu conexión.');
     } finally {
       if (mounted) setState(() => _validando = false);
     }
@@ -241,6 +252,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
               labelText: 'Código promocional',
               prefixIcon: const Icon(Icons.confirmation_number_outlined),
               errorText: _errorCupon,
+              errorMaxLines: 3,
               isDense: true,
             ),
             textCapitalization: TextCapitalization.characters,
@@ -283,14 +295,31 @@ class _Resumen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
         ],
         _filaResumen(context, 'Subtotal', carrito.subtotal),
-        if (carrito.cuponAplicado != null)
+        if (carrito.cuponAplicado != null) ...[
           _filaResumen(
             context,
-            'Descuento (${carrito.cuponAplicado!.codigo})',
+            'Descuento (${carrito.cuponAplicado!.codigo} · ${carrito.cuponAplicado!.descripcionDescuento})',
             -carrito.descuento,
             color: AppColors.dorado,
             onQuitar: carrito.quitarCupon,
           ),
+          if (carrito.avisoCupon != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      carrito.avisoCupon!,
+                      style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
         const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: Divider()),
         _filaResumen(context, 'Total', carrito.total, esTotal: true),
         const SizedBox(height: 12),

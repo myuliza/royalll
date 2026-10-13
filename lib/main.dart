@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
@@ -63,6 +64,9 @@ class _RoyalAppState extends State<RoyalApp> {
           themeMode: tema.modo,
           themeAnimationDuration: AppDurations.lenta,
           routerConfig: _router,
+          locale: const Locale('es'),
+          supportedLocales: const [Locale('es'), Locale('en')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
         ),
       ),
     );

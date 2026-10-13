@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../utils/catalogo_seeder.dart';
 import '../widgets/app_product_image.dart';
 import '../widgets/ui/ui.dart';
+import 'empleado/codigos_tab.dart';
 import 'empleado/ventas_tab.dart';
 
 /// Acento legible según el tema (azul oscuro en claro, cyan en oscuro).
@@ -24,7 +25,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
   String _busqueda = '';
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
-  int _seccion = 0; // 0 = Ventas, 1 = Servicios, 2 = Productos
+  int _seccion = 0; // 0 = Ventas, 1 = Servicios, 2 = Productos, 3 = Códigos promocionales
   String _filtroEspecial = ''; // 'sinStock' | 'stockBajo' | 'descuento'
   static const int _umbralStockBajo = 3;
 
@@ -910,6 +911,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
     (Icons.insights_outlined, 'Ventas'),
     (Icons.dashboard_outlined, 'Servicios'),
     (Icons.inventory_2_outlined, 'Productos'),
+    (Icons.confirmation_number_outlined, 'Códigos promocionales'),
   ];
 
   @override
@@ -936,7 +938,12 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
         return IndexedStack(
           index: _seccion,
           sizing: StackFit.expand,
-          children: [VentasTab(productos: todos), _buildServicios(todos), _buildProductos(todos)],
+          children: [
+            VentasTab(productos: todos),
+            _buildServicios(todos),
+            _buildProductos(todos),
+            CodigosTab(productos: todos),
+          ],
         );
       },
     );
