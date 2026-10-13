@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'empleado_dashboard_screen.dart';
+import '../theme/app_theme.dart';
+import '../widgets/ui/app_card.dart';
 import '../widgets/theme_toggle_button.dart';
 
 class EmpleadoLoginScreen extends StatefulWidget {
@@ -54,7 +56,8 @@ class _EmpleadoLoginScreenState extends State<EmpleadoLoginScreen> {
       }
 
       // VALIDACIÓN DE SEGURIDAD: Verificar que el usuario tenga rol de empleado o admin
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
       final data = userDoc.data();
       final role = (data?['role'] ?? '').toString().toLowerCase();
 
@@ -77,7 +80,9 @@ class _EmpleadoLoginScreenState extends State<EmpleadoLoginScreen> {
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _error = e.code == 'invalid-credential' || e.code == 'wrong-password' || e.code == 'user-not-found'
+        _error = e.code == 'invalid-credential' ||
+                e.code == 'wrong-password' ||
+                e.code == 'user-not-found'
             ? 'Email o contraseña incorrectos'
             : 'Error de autenticación: ${e.message ?? e.code}';
       });
@@ -103,81 +108,103 @@ class _EmpleadoLoginScreenState extends State<EmpleadoLoginScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(
-                  Icons.admin_panel_settings_outlined,
-                  size: 56,
-                  color: Color(0xFF0B2545),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Panel de Gestión Royal',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Ingresá con tu cuenta autorizada',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _passCtrl,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Contraseña',
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
-                  onSubmitted: (_) => _cargando ? null : _iniciarSesion(),
-                ),
-                const SizedBox(height: 20),
-                if (_error != null)
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: AppCard(
+              padding: const EdgeInsets.all(AppSpacing.xl + 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 84,
+                      height: 84,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient:
+                            LinearGradient(colors: AppColors.degradadoCyan),
+                      ),
+                      child: const Icon(Icons.admin_panel_settings_outlined,
+                          size: 42, color: Colors.white),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.red, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _error!,
-                            style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Panel de Gestión Royal',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: context.royal.textoPrincipal),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Ingresá con tu cuenta autorizada',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: context.royal.textoSecundario),
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(
+                      labelText: 'Correo electrónico',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _passCtrl,
+                    obscureText: true,
+                    textInputAction: TextInputAction.go,
+                    decoration: const InputDecoration(
+                      labelText: 'Contraseña',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    onSubmitted: (_) => _cargando ? null : _iniciarSesion(),
+                  ),
+                  const SizedBox(height: 20),
+                  if (_error != null)
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.rojoDescuento.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        border: Border.all(
+                            color:
+                                AppColors.rojoDescuento.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline,
+                              color: Colors.red, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 13),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                  ElevatedButton(
+                    onPressed: _cargando ? null : _iniciarSesion,
+                    child: _cargando
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Ingresar al panel'),
                   ),
-                ElevatedButton(
-                  onPressed: _cargando ? null : _iniciarSesion,
-                  child: _cargando
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Ingresar al panel'),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

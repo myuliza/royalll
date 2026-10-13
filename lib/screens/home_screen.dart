@@ -1,84 +1,206 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import '../models/producto.dart';
 import '../theme/app_theme.dart';
+import '../theme/breakpoints.dart';
+import '../utils/visual.dart';
 import '../widgets/producto_card.dart';
+import '../widgets/ui/ui.dart';
+import 'catalogo_screen.dart';
 
 /// Sección Inicio. La navegación entre secciones la maneja el router (AppShell).
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  /// Solo para tests: datos fijos en lugar de Firestore.
+  @visibleForTesting
+  final List<Producto>? productosDePrueba;
 
-  void onNavigate(BuildContext context, int _) => context.go('/catalogo');
+  const HomeScreen({super.key, this.productosDePrueba});
+
+  static void _irCatalogo(BuildContext context,
+      [Map<String, String>? filtros]) {
+    context.go(Uri(path: '/catalogo', queryParameters: filtros).toString());
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.fondo,
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: StreamBuilder<QuerySnapshot>(
+        stream: productosDePrueba != null
+            ? null
+            : FirebaseFirestore.instance.collection('productos').snapshots(),
+        builder: (context, snapshot) {
+          final productos = productosDePrueba ??
+              (snapshot.hasData
+                  ? snapshot.data!.docs
+                      .map((d) => Producto.fromMap(
+                          d.id, d.data() as Map<String, dynamic>))
+                      .toList()
+                  : null);
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final lateral = math.max(
+                Breakpoints.paddingLateral(context),
+                (constraints.maxWidth - Breakpoints.anchoMaximo) / 2,
+              );
+              return Scrollbar(
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(
+                      lateral, AppSpacing.xl, lateral, AppSpacing.xxl),
                   children: [
-                    _HeroBanner(onNavigate: (i) => onNavigate(context, i)),
-                    _SeccionCategorias(onNavigate: (i) => onNavigate(context, i)),
-                    _SeccionPopulares(onNavigate: (i) => onNavigate(context, i)),
-                    const SizedBox(height: 24),
+                    const SectionHeader(
+                      titulo: 'Inicio',
+                      subtitulo:
+                          'Fundas premium para tu iPhone: diseño, protección y estilo.',
+                      grande: true,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _TarjetasDestacadas(productos: productos),
+                    const SizedBox(height: AppSpacing.xl),
+                    _HeroBanner(onVerColeccion: () => _irCatalogo(context)),
+                    const SizedBox(height: AppSpacing.xxl),
+                    if (snapshot.hasError)
+                      const EmptyState.error(
+                          titulo: 'No se pudieron cargar los productos')
+                    else ...[
+                      _SeccionCategorias(productos: productos),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _SeccionModelos(productos: productos),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _SeccionPopulares(productos: productos),
+                    ],
                   ],
                 ),
-              ),
-            ),
-          ),
-        ],
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
 
-class _HeroBanner extends StatelessWidget {
-  final void Function(int) onNavigate;
+/// Grilla adaptable: columnas según el ancho disponible.
+class _Grilla extends StatelessWidget {
+  final double anchoMinimo;
+  final double espacio;
+  final List<Widget> children;
 
-  const _HeroBanner({required this.onNavigate});
+  const _Grilla(
+      {required this.anchoMinimo,
+      required this.children,
+      this.espacio = AppSpacing.lg});
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final columnas = math.max(
+            1, ((c.maxWidth + espacio) / (anchoMinimo + espacio)).floor());
+        final ancho = (c.maxWidth - espacio * (columnas - 1)) / columnas;
+        return Wrap(
+          spacing: espacio,
+          runSpacing: espacio,
+          children: [
+            for (final w in children) SizedBox(width: ancho, child: w)
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _TarjetasDestacadas extends StatelessWidget {
+  final List<Producto>? productos;
+  const _TarjetasDestacadas({required this.productos});
+
+  @override
+  Widget build(BuildContext context) {
+    String contar(bool Function(Producto) f) =>
+        productos == null ? '…' : '${productos!.where(f).length}';
+    final escritorio = Breakpoints.esEscritorio(context);
+
+    final tarjetas = [
+      FeatureTile(
+        titulo: 'Colección iPhone',
+        subtitulo: 'Todas las fundas',
+        icono: Icons.phone_iphone_rounded,
+        degradado: AppColors.degradadoCyan,
+        contador: productos == null ? '…' : '${productos!.length}',
+        onTap: () => HomeScreen._irCatalogo(context),
+      ),
+      FeatureTile(
+        titulo: 'Ofertas',
+        subtitulo: 'Con descuento',
+        icono: Icons.local_offer_rounded,
+        degradado: AppColors.degradadoNaranja,
+        contador:
+            contar((p) => FiltroEspecial.cumple(FiltroEspecial.ofertas, p)),
+        onTap: () => HomeScreen._irCatalogo(
+            context, {'especial': FiltroEspecial.ofertas}),
+      ),
+      FeatureTile(
+        titulo: 'Nuevos modelos',
+        subtitulo: 'iPhone 17 y 18',
+        icono: Icons.new_releases_rounded,
+        degradado: AppColors.degradadoVerde,
+        contador: contar(FiltroEspecial.esNuevo),
+        onTap: () => HomeScreen._irCatalogo(
+            context, {'especial': FiltroEspecial.nuevos}),
+      ),
+      FeatureTile(
+        titulo: 'Personalizables',
+        subtitulo: 'Tu diseño',
+        icono: Icons.brush_rounded,
+        degradado: AppColors.degradadoRosa,
+        contador: contar((p) => p.personalizable),
+        onTap: () => HomeScreen._irCatalogo(
+            context, {'especial': FiltroEspecial.personalizables}),
+      ),
+    ];
+
+    return _Grilla(anchoMinimo: escritorio ? 220 : 150, children: tarjetas);
+  }
+}
+
+/// Banner de colección (antes hero grande, ahora tarjeta compacta)
+class _HeroBanner extends StatelessWidget {
+  final VoidCallback onVerColeccion;
+
+  const _HeroBanner({required this.onVerColeccion});
+
+  @override
+  Widget build(BuildContext context) {
+    final movil = Breakpoints.esMovil(context);
     return Container(
-      margin: const EdgeInsets.all(16),
-      constraints: const BoxConstraints(minHeight: 190),
+      constraints: const BoxConstraints(minHeight: 132),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         gradient: const LinearGradient(
           colors: [AppColors.azul, AppColors.azulClaro],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.azul.withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: AppColors.dorado.withValues(alpha: 0.25)),
+        boxShadow: AppShadows.suave(Theme.of(context).brightness),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Stack(
-        clipBehavior: Clip.hardEdge,
         children: [
           // Imagen de funda iPhone con transparencia gradual (de menos a más transparencia)
           Positioned(
-            right: -10,
-            top: -10,
-            bottom: -10,
-            width: 220,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: movil ? 130 : 260,
             child: ShaderMask(
               shaderCallback: (bounds) => const LinearGradient(
                 begin: Alignment.centerRight,
                 end: Alignment.centerLeft,
                 colors: [Colors.white, Colors.transparent],
-                stops: [0.15, 0.85],
+                stops: [0.15, 0.95],
               ).createShader(bounds),
               blendMode: BlendMode.dstIn,
               child: Image.asset(
@@ -89,66 +211,59 @@ class _HeroBanner extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+            padding: const EdgeInsets.all(AppSpacing.lg + 4),
+            child: Row(
               children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.dorado.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.dorado.withValues(alpha: 0.5)),
-                  ),
-                  child: const Text(
-                    'Nueva colección',
-                    style: TextStyle(
-                      color: AppColors.doradoClaro,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.dorado.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: AppColors.dorado.withValues(alpha: 0.5)),
+                        ),
+                        child: const Text(
+                          'Nueva colección',
+                          style: TextStyle(
+                            color: AppColors.doradoClaro,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Colección para iPhone',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Diseño, Protección, Estilo.',
+                        style: TextStyle(color: Colors.white60, fontSize: 13),
+                      ),
+                      if (movil) ...[
+                        const SizedBox(height: 12),
+                        _botonVer(),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Colección para\niPhone',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Diseño, Protección, Estilo.',
-                  style: TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => onNavigate(1),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    backgroundColor: Theme.of(context).colorScheme.secondary,
-                    foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                    textStyle: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  label: const Text('Ver colección'),
-                  icon: const Icon(Icons.arrow_forward, size: 14),
-                  iconAlignment: IconAlignment.end,
-                ),
+                if (!movil) ...[
+                  const SizedBox(width: AppSpacing.lg),
+                  Padding(
+                      padding: const EdgeInsets.only(right: 120),
+                      child: _botonVer()),
+                ],
               ],
             ),
           ),
@@ -156,263 +271,155 @@ class _HeroBanner extends StatelessWidget {
       ),
     );
   }
+
+  Widget _botonVer() => FilledButton.icon(
+        onPressed: onVerColeccion,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(48, 44),
+          textStyle: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700, fontSize: 13),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.pill)),
+        ),
+        label: const Text('Ver colección'),
+        icon: const Icon(Icons.arrow_forward, size: 16),
+        iconAlignment: IconAlignment.end,
+      );
 }
 
 class _SeccionCategorias extends StatelessWidget {
-  final void Function(int) onNavigate;
+  final List<Producto>? productos;
+  const _SeccionCategorias({required this.productos});
 
-  const _SeccionCategorias({required this.onNavigate});
-
-  static const List<_CatItem> _cats = [
-    _CatItem('Clásicas', Icons.phone_iphone_outlined, 'solido'),
-    _CatItem('Diseños', Icons.palette_outlined, 'personalizada'),
-    _CatItem('Transparente', Icons.blur_on_outlined, 'transparente'),
-    _CatItem('Ver todo', Icons.apps_outlined, 'todas'),
-  ];
+  // Etiquetas propias del Inicio (Clásicas, Diseños) + el resto de las categorías del catálogo
+  static const _etiquetasInicio = {
+    'solido': 'Clásicas',
+    'personalizada': 'Diseños'
+  };
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Categorías',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textoPrincipal,
-                ),
+    final conteo = <String, int>{};
+    for (final p in productos ?? const <Producto>[]) {
+      conteo[p.categoria] = (conteo[p.categoria] ?? 0) + 1;
+    }
+    // Se muestran las categorías con productos (mientras carga, todas)
+    final cats = Categorias.todas
+        .where((c) => productos == null || (conteo[c.id] ?? 0) > 0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(
+          titulo: 'Categorías',
+          accion: 'Ver todas',
+          onAccion: () => HomeScreen._irCatalogo(context),
+        ),
+        _Grilla(
+          anchoMinimo: 130,
+          espacio: AppSpacing.md,
+          children: [
+            for (final c in cats)
+              IconTile(
+                titulo: _etiquetasInicio[c.id] ?? c.etiqueta,
+                icono: c.icono,
+                color: c.color,
+                onTap: () =>
+                    HomeScreen._irCatalogo(context, {'categoria': c.id}),
               ),
-              TextButton(
-                onPressed: () => onNavigate(1),
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                child: const Text('Ver todas →'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: _cats
-                .map((c) => _CatChip(item: c, onNavigate: onNavigate))
-                .toList(),
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
+            IconTile(
+              titulo: 'Ver todo',
+              icono: Icons.apps_rounded,
+              color: AppColors.doradoOscuro,
+              onTap: () => HomeScreen._irCatalogo(context),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
 
-class _CatItem {
-  final String label;
-  final IconData icon;
-  final String filtro;
-  const _CatItem(this.label, this.icon, this.filtro);
-}
-
-class _CatChip extends StatelessWidget {
-  final _CatItem item;
-  final void Function(int) onNavigate;
-
-  const _CatChip({required this.item, required this.onNavigate});
+class _SeccionModelos extends StatelessWidget {
+  final List<Producto>? productos;
+  const _SeccionModelos({required this.productos});
 
   @override
   Widget build(BuildContext context) {
-    final colores = Theme.of(context).colorScheme;
+    if (productos == null || productos!.isEmpty) return const SizedBox.shrink();
+    final conteo = <String, int>{};
+    for (final p in productos!) {
+      for (final m in p.modelosCompatibles) {
+        conteo[m] = (conteo[m] ?? 0) + 1;
+      }
+    }
+    // Más nuevos primero (orden natural descendente: iPhone 18 > 17 > …)
+    final modelos = conteo.keys.toList()..sort((a, b) => b.compareTo(a));
 
-    return Material(
-      color: colores.surface,
-      elevation: 2,
-      shadowColor: colores.primary.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => onNavigate(1),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 80, minHeight: 48),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 64,
-                  height: 48,
-                  child: Icon(item.icon, color: colores.primary, size: 28),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  item.label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: colores.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionHeader(
+            titulo: 'Por modelo',
+            subtitulo: 'Encontrá la funda exacta para tu iPhone'),
+        _Grilla(
+          anchoMinimo: 130,
+          espacio: AppSpacing.md,
+          children: [
+            for (final m in modelos.take(12))
+              IconTile(
+                titulo: '$m (${conteo[m]})',
+                icono: Icons.phone_iphone_rounded,
+                color: AppColors.dorado,
+                onTap: () => HomeScreen._irCatalogo(context, {'modelo': m}),
+              ),
+          ],
         ),
-      ),
+      ],
     );
   }
 }
 
 class _SeccionPopulares extends StatelessWidget {
-  final void Function(int) onNavigate;
-
-  const _SeccionPopulares({required this.onNavigate});
+  final List<Producto>? productos;
+  const _SeccionPopulares({required this.productos});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Más populares',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textoPrincipal,
-                ),
-              ),
-              TextButton(
-                onPressed: () => onNavigate(1),
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                child: const Text('Ver todas →'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('productos')
-                .limit(4)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.error_outline,
-                            color: Colors.redAccent, size: 32),
-                        SizedBox(height: 8),
-                        Text(
-                          'No se pudieron cargar los productos',
-                          style: TextStyle(
-                              color: AppColors.textoSecundario, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              if (!snapshot.hasData) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: CircularProgressIndicator(color: AppColors.dorado),
-                  ),
-                );
-              }
-
-              final productos = snapshot.data!.docs
-                  .map((d) =>
-                      Producto.fromMap(d.id, d.data() as Map<String, dynamic>))
-                  .toList();
-
-              if (productos.isEmpty) {
-                return Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.inventory_2_outlined,
-                            color: AppColors.dorado, size: 32),
-                        SizedBox(height: 8),
-                        Text(
-                          'Próximamente los productos',
-                          style: TextStyle(
-                              color: AppColors.textoSecundario, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 900;
-                  final isMedium = constraints.maxWidth > 600;
-                  final crossAxisCount = isWide ? 4 : (isMedium ? 3 : 2);
-                  final childAspectRatio = isWide ? 0.75 : 0.68;
-
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: childAspectRatio,
-                    ),
-                    itemCount: productos.length,
-                    itemBuilder: (context, i) {
-                      final p = productos[i];
-                      return ProductoCard(
-                        producto: p,
-                        onTap: () => mostrarModalProductoDetalle(context, p),
-                      );
-                    },
-                  );
-                },
+    final lista = productos;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(
+          titulo: 'Más populares',
+          accion: 'Ver todas',
+          onAccion: () => HomeScreen._irCatalogo(context),
+        ),
+        if (lista == null)
+          const SkeletonGrid(cantidad: 4, anchoMaximoItem: 260, proporcion: 0.7)
+        else if (lista.isEmpty)
+          const EmptyState(
+              icono: Icons.inventory_2_outlined,
+              titulo: 'Próximamente los productos')
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: Breakpoints.esMovil(context) ? 230 : 260,
+              mainAxisSpacing: AppSpacing.lg,
+              crossAxisSpacing: AppSpacing.lg,
+              childAspectRatio: 0.70,
+            ),
+            itemCount: math.min(8, lista.length),
+            itemBuilder: (context, i) {
+              final p = lista[i];
+              return ProductoCard(
+                producto: p,
+                onTap: () => mostrarModalProductoDetalle(context, p),
               );
             },
           ),
-        ],
-      ),
+      ],
     );
   }
 }

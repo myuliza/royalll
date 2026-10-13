@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'ui/skeleton.dart';
 
 /// Widget de renderizado de imágenes para fundas de productos en RoyalApp.
 ///
 /// Implementación robusta basada en [Image.network]:
 /// - Validación de protocolos (http/https) y sanitización de URLs.
-/// - [loadingBuilder] con indicador circular y porcentaje de descarga.
-/// - [errorBuilder] para fallback visual inmediato ante URLs rotas o fallos de red.
+/// - [loadingBuilder] con esqueleto animado e indicador de porcentaje de descarga.
+/// - [frameBuilder] con aparición suave al terminar de cargar.
+/// - [errorBuilder] para fallback visual inmediato ante URLs rotas o fallos de red (nunca queda vacío).
 /// - [ValueKey] que garantiza la actualización fluida e inmediata en tiempo real al editar la URL.
 class AppProductImage extends StatelessWidget {
   final String imageUrl;
@@ -41,7 +43,7 @@ class AppProductImage extends StatelessWidget {
     Widget content;
 
     if (!_esUrlValida) {
-      content = _buildPlaceholder();
+      content = _buildPlaceholder(context);
     } else if (_esAssetLocal) {
       // Si la URL guardada en Firestore aún tiene .png, corregir a .jpg que es el formato real
       var assetPath = imageUrl.trim();
@@ -55,7 +57,8 @@ class AppProductImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        frameBuilder: _aparicionSuave,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(context),
       );
     } else {
       final urlLimpia = imageUrl.trim();
@@ -68,25 +71,30 @@ class AppProductImage extends StatelessWidget {
         headers: const {
           'Accept': 'image/*',
         },
+        frameBuilder: _aparicionSuave,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
-          return Center(
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.dorado,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                    : null,
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(child: SkeletonBox(width: width, height: height, radio: 0)),
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.dorado,
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
               ),
-            ),
+            ],
           );
         },
         errorBuilder: (context, error, stackTrace) {
-          return _buildPlaceholder();
+          return _buildPlaceholder(context);
         },
       );
     }
@@ -101,22 +109,28 @@ class AppProductImage extends StatelessWidget {
     return content;
   }
 
-  Widget _buildPlaceholder() {
+  /// Aparición suave (fade) de la imagen cuando llega el primer cuadro.
+  static Widget _aparicionSuave(BuildContext context, Widget child, int? frame, bool sincronica) {
+    if (sincronica) return child;
+    return AnimatedOpacity(
+      opacity: frame == null ? 0 : 1,
+      duration: AppDurations.lenta,
+      curve: Curves.easeOut,
+      child: child,
+    );
+  }
+
+  Widget _buildPlaceholder(BuildContext context) {
+    final royal = context.royal;
     return Container(
       width: width,
       height: height,
-      color: const Color(0xFFF9FAFB),
+      color: royal.fondoImagen,
       child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.phone_iphone_rounded,
-              size: (height != null && height! < 60) ? 22 : 36,
-              color: AppColors.textoAtenuado,
-            ),
-          ],
+        child: Icon(
+          Icons.phone_iphone_rounded,
+          size: (height != null && height! < 60) ? 22 : 36,
+          color: royal.textoAtenuado,
         ),
       ),
     );

@@ -59,7 +59,7 @@ class SectionHeader extends StatelessWidget {
                 backgroundColor: AppColors.dorado.withValues(alpha: 0.14),
                 foregroundColor: context.esOscuro ? AppColors.doradoClaro : AppColors.doradoOscuro,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                textStyle: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w600, fontSize: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
               ),
               iconAlignment: IconAlignment.end,

@@ -5,6 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/app_config.dart';
 import '../utils/formatters.dart';
 import '../providers/carrito_provider.dart';
+import '../theme/app_theme.dart';
+import '../theme/breakpoints.dart';
+import '../widgets/ui/ui.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -29,6 +32,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final carrito = context.watch<CarritoProvider>();
+    final royal = context.royal;
+    final colorPrecio = context.esOscuro ? AppColors.doradoClaro : AppColors.azul;
+    final tituloSeccion = TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: royal.textoPrincipal);
+
+    final boton = SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+        icon: _procesando
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.azul),
+              )
+            : const Icon(Icons.chat_bubble_outline),
+        label: Text(_procesando ? 'Procesando stock...' : 'Enviar pedido por WhatsApp'),
+        onPressed: _procesando ? null : () => _confirmarPedido(carrito),
+      ),
+    );
 
     return PopScope(
       canPop: !_procesando,
@@ -36,47 +58,140 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: const Text('Confirmar pedido'),
+          backgroundColor: royal.fondo,
+          foregroundColor: royal.textoPrincipal,
+          titleTextStyle: TextStyle(
+            fontFamily: AppTheme.fontFamily,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: royal.textoPrincipal,
+          ),
         ),
         body: SafeArea(
           child: Form(
             key: _formKey,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.symmetric(
+                horizontal: Breakpoints.paddingLateral(context),
+                vertical: AppSpacing.lg,
+              ),
               children: [
-                const Text('Datos para el pedido', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _nombreController,
-                  decoration: const InputDecoration(labelText: 'Tu nombre'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresá tu nombre' : null,
-                ),
-                const SizedBox(height: 16),
-                const Text('Forma de pago', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ValueListenableBuilder<String>(
-                  valueListenable: _formaPago,
-                  builder: (context, value, _) => RadioGroup<String>(
-                    groupValue: value,
-                    onChanged: (v) {
-                      if (v != null) _formaPago.value = v;
-                    },
-                    child: const Column(
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 640),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        RadioListTile<String>(
-                          value: 'efectivo',
-                          title: Text('Efectivo'),
+                        AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text('Datos para el pedido', style: tituloSeccion),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: _nombreController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Tu nombre',
+                                  prefixIcon: Icon(Icons.person_outline),
+                                ),
+                                validator: (v) => (v == null || v.trim().isEmpty) ? 'Ingresá tu nombre' : null,
+                              ),
+                              const SizedBox(height: 16),
+                              Text('Forma de pago', style: tituloSeccion),
+                              ValueListenableBuilder<String>(
+                                valueListenable: _formaPago,
+                                builder: (context, value, _) => RadioGroup<String>(
+                                  groupValue: value,
+                                  onChanged: (v) {
+                                    if (v != null) _formaPago.value = v;
+                                  },
+                                  child: const Column(
+                                    children: [
+                                      RadioListTile<String>(
+                                        value: 'efectivo',
+                                        title: Text('Efectivo'),
+                                        secondary: Icon(Icons.payments_outlined),
+                                      ),
+                                      RadioListTile<String>(
+                                        value: 'transferencia',
+                                        title: Text('Transferencia'),
+                                        secondary: Icon(Icons.account_balance_outlined),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        RadioListTile<String>(
-                          value: 'transferencia',
-                          title: Text('Transferencia'),
+                        const SizedBox(height: AppSpacing.lg),
+                        // Resumen del pedido (solo lectura)
+                        AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text('Tu pedido', style: tituloSeccion),
+                              const SizedBox(height: 8),
+                              for (final item in carrito.items)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${item.cantidad}× ${item.producto.nombre}',
+                                          style: TextStyle(color: royal.textoSecundario),
+                                        ),
+                                      ),
+                                      Text(formatPrice(item.subtotal), style: TextStyle(color: royal.textoPrincipal)),
+                                    ],
+                                  ),
+                                ),
+                              if (carrito.cuponAplicado != null)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Cupón ${carrito.cuponAplicado!.codigo}',
+                                          style: const TextStyle(color: AppColors.dorado),
+                                        ),
+                                      ),
+                                      Text('-${formatPrice(carrito.descuento)}', style: const TextStyle(color: AppColors.dorado)),
+                                    ],
+                                  ),
+                                ),
+                              const Divider(height: 20),
+                              Row(
+                                children: [
+                                  Expanded(child: Text('Total', style: tituloSeccion)),
+                                  Text(
+                                    formatPrice(carrito.total),
+                                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: colorPrecio),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline, size: 16, color: royal.textoAtenuado),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Al confirmar se descontará el stock en Firebase y se abrirá WhatsApp para coordinar la entrega.',
+                                style: TextStyle(fontSize: 12, color: royal.textoSecundario),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Al confirmar se descontará el stock en Firebase y se abrirá WhatsApp para coordinar la entrega.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -86,19 +201,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
           child: SafeArea(
             minimum: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: _procesando
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.chat_bubble_outline),
-                label: Text(_procesando ? 'Procesando stock...' : 'Enviar pedido por WhatsApp'),
-                onPressed: _procesando ? null : () => _confirmarPedido(carrito),
-              ),
+            child: Center(
+              heightFactor: 1,
+              child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: boton),
             ),
           ),
         ),

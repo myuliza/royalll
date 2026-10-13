@@ -147,7 +147,8 @@ class RoyalColors extends ThemeExtension<RoyalColors> {
     textoPrincipal: AppColors.oscuroTextoPrincipal,
     textoSecundario: AppColors.oscuroTextoSecundario,
     textoAtenuado: AppColors.oscuroTextoAtenuado,
-    fondoImagen: AppColors.oscuroSuperficieAlta,
+    // Las fotos de las fundas tienen fondo blanco: se presentan sobre una bandeja clara
+    fondoImagen: Color(0xFFF3F4F6),
     barraLateral: AppColors.azulProfundo,
     acento: AppColors.doradoClaro,
   );

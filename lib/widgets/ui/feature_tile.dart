@@ -61,40 +61,38 @@ class FeatureTile extends StatelessWidget {
                     child: Icon(icono, size: 30, color: degradado.last),
                   ),
                   const SizedBox(height: AppSpacing.md),
+                  // Título a lo ancho (hasta 2 líneas) para que no se corte en pantallas chicas
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      titulo,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              titulo,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            if (subtitulo != null)
-                              Text(
-                                subtitulo!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 12,
-                                ),
-                              ),
-                          ],
+                        child: Text(
+                          subtitulo ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 12),
                         ),
                       ),
                       if (contador != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.22),
                             borderRadius: BorderRadius.circular(AppRadius.pill),
