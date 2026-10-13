@@ -1181,6 +1181,20 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 ),
               ),
+              const SizedBox(height: 8),
+              // Dato interno (antes se le mostraba al cliente en el pedido)
+              Row(
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: context.royal.textoSecundario),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'El stock se descuenta automáticamente en Firebase cuando un cliente confirma su pedido.',
+                      style: TextStyle(fontSize: 12, color: context.royal.textoSecundario),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
               SizedBox(
                 height: 36,

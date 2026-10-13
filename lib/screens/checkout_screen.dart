@@ -49,7 +49,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.azul),
               )
             : const Icon(Icons.chat_bubble_outline),
-        label: Text(_procesando ? 'Procesando stock...' : 'Enviar pedido por WhatsApp'),
+        label: Text(_procesando ? 'Procesando pedido...' : 'Enviar pedido por WhatsApp'),
         onPressed: _procesando ? null : () => _confirmarPedido(carrito),
       ),
     );
@@ -185,7 +185,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                'Al confirmar se descontará el stock en Firebase y se abrirá WhatsApp para coordinar la entrega.',
+                                'Al confirmar se abrirá WhatsApp para coordinar la entrega.',
                                 style: TextStyle(fontSize: 12, color: royal.textoSecundario),
                               ),
                             ),
