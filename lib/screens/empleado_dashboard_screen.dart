@@ -38,19 +38,21 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
 
   // Paleta estandarizada de colores para crear/editar productos
   static const List<Map<String, String>> _paletaColores = [
-    {'nombre': 'Negro', 'hex': '#000000', 'fotoDefecto': 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Blanco', 'hex': '#FFFFFF', 'fotoDefecto': 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Transparente', 'hex': '#E5E7EB', 'fotoDefecto': 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Azul', 'hex': '#0B2545', 'fotoDefecto': 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Rojo', 'hex': '#DC2626', 'fotoDefecto': 'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Verde', 'hex': '#16A34A', 'fotoDefecto': 'https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Rosa', 'hex': '#F472B6', 'fotoDefecto': 'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Morado', 'hex': '#7E22CE', 'fotoDefecto': 'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Dorado/Beige', 'hex': '#C9A227', 'fotoDefecto': 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&auto=format&fit=crop&q=80'},
-    {'nombre': 'Gris/Titanio', 'hex': '#64748B', 'fotoDefecto': 'https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=800&auto=format&fit=crop&q=80'},
+    {'nombre': 'Negro', 'hex': '#000000', 'fotoDefecto': 'assets/fundas/funda_iphone_14_negro.jpg'},
+    {'nombre': 'Azul', 'hex': '#0B2545', 'fotoDefecto': 'assets/fundas/funda_iphone_14_azul.jpg'},
+    {'nombre': 'Rojo', 'hex': '#DC2626', 'fotoDefecto': 'assets/fundas/funda_iphone_14_rojo.jpg'},
+    {'nombre': 'Verde', 'hex': '#16A34A', 'fotoDefecto': 'assets/fundas/funda_iphone_16_verde.jpg'},
+    {'nombre': 'Rosa', 'hex': '#F472B6', 'fotoDefecto': 'assets/fundas/funda_iphone_14_rosa.jpg'},
+    {'nombre': 'Lila/Morado', 'hex': '#7E22CE', 'fotoDefecto': 'assets/fundas/funda_iphone_15_lila.jpg'},
+    {'nombre': 'Transparente', 'hex': '#E5E7EB', 'fotoDefecto': 'assets/fundas/funda_iphone_14_transparente.jpg'},
+    {'nombre': 'Amarillo', 'hex': '#FBBF24', 'fotoDefecto': 'assets/fundas/funda_iphone_15_amarillo.jpg'},
+    {'nombre': 'Gris/Titanio', 'hex': '#64748B', 'fotoDefecto': 'assets/fundas/funda_iphone_11_pro_dualtek_gris.jpg'},
   ];
 
   static const List<String> _modelosIPhone = [
+    'iPhone 17 Pro Max',
+    'iPhone 17 Pro',
+    'iPhone 17',
     'iPhone 16 Pro Max',
     'iPhone 16 Pro',
     'iPhone 16',
@@ -65,6 +67,7 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
     'iPhone 13',
     'iPhone 12 Pro',
     'iPhone 12',
+    'iPhone 11',
   ];
 
   String _labelCategoria(String c) {
@@ -815,19 +818,6 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                 ),
                 const Divider(),
                 ListTile(
-                  leading: const Icon(Icons.sync, color: AppColors.azul),
-                  title: const Text('Actualizar fotos reales y nomenclatura'),
-                  subtitle: const Text('Asigna imágenes reales y formato "Funda iPhone X" a todos los productos'),
-                  onTap: () async {
-                    Navigator.pop(sheetCtx);
-                    final actualizados = await CatalogoSeeder.sincronizarFotosYNomenclatura();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Catálogo actualizado: $actualizados fundas con fotos reales')),
-                    );
-                  },
-                ),
-                ListTile(
                   leading: const Icon(Icons.cleaning_services_outlined, color: Colors.orange),
                   title: const Text('Limpiar duplicados en Firestore'),
                   subtitle: const Text('Conserva un solo documento por modelo'),
@@ -837,19 +827,6 @@ class _EmpleadoDashboardScreenState extends State<EmpleadoDashboardScreen> {
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Limpieza completa: $eliminados duplicados eliminados')),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.cloud_upload_outlined, color: AppColors.dorado),
-                  title: const Text('Poblar datos semilla (10 fundas variadas)'),
-                  subtitle: const Text('Inserta modelos con fotos reales si la colección está vacía'),
-                  onTap: () async {
-                    Navigator.pop(sheetCtx);
-                    final count = await CatalogoSeeder.inicializarDatosSemillaSiVacio();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Datos semilla: $count cargados')),
                     );
                   },
                 ),

@@ -1,6 +1,7 @@
 /* ==========================================================================
    ROYAL IPHONE CASES — HOJA DE ESTILOS
    Inspirado en la estética minimalista y de lujo de Apple Store
+   Optimizado PC-First para monitores panorámicos 16:9
    ========================================================================== */
 
 :root {
@@ -19,10 +20,12 @@
   --texto-atenuado: #9CA3AF;
   --rojo-descuento: #DC2626;
   --verde-exito: #16A34A;
+  --radio-sm: 8px;
   --radio-md: 12px;
   --radio-lg: 16px;
   --sombra-suave: 0 4px 12px rgba(0, 0, 0, 0.05);
   --sombra-card: 0 2px 8px rgba(11, 37, 69, 0.06);
+  --sombra-hover: 0 12px 28px rgba(11, 37, 69, 0.12);
   --transicion: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -30,6 +33,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 body {
@@ -40,7 +48,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ================= NAVBAR ================= */
+/* ================= NAVBAR (16:9 Adaptado) ================= */
 .navbar {
   background-color: var(--azul);
   color: white;
@@ -51,9 +59,9 @@ body {
 }
 
 .navbar-container {
-  max-width: 1300px;
+  width: min(94vw, 1720px);
   margin: 0 auto;
-  padding: 12px 24px;
+  padding: 14px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -67,8 +75,8 @@ body {
 }
 
 .brand-logo {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   background: linear-gradient(135deg, #FFE894, var(--dorado), var(--dorado-oscuro));
   border-radius: 10px;
   display: flex;
@@ -88,7 +96,7 @@ body {
 }
 
 .brand-name {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: 3.5px;
   color: #FFFFFF;
@@ -127,9 +135,9 @@ body {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.85);
-  padding: 6px 14px;
+  padding: 7px 16px;
   border-radius: 20px;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -156,7 +164,7 @@ body {
 }
 
 .banner-content {
-  max-width: 1300px;
+  width: min(94vw, 1720px);
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -175,34 +183,54 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* ================= LAYOUT PRINCIPAL ================= */
+/* ================= LAYOUT PRINCIPAL PC-FIRST (16:9) ================= */
 .main-container {
-  max-width: 1300px;
-  margin: 24px auto;
-  padding: 0 24px;
+  width: min(94vw, 1720px);
+  margin: 28px auto;
+  padding: 0 16px;
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 28px;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
   align-items: start;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
+  .main-container {
+    grid-template-columns: 260px 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 860px) {
   .main-container {
     grid-template-columns: 1fr;
+    margin: 16px auto;
   }
 }
 
 /* ================= SIDEBAR / FILTROS ================= */
 .sidebar {
   position: sticky;
-  top: 80px;
+  top: 86px;
+  max-height: calc(100vh - 105px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--borde) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--borde);
+  border-radius: 4px;
 }
 
 .filter-card {
   background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio-lg);
-  padding: 20px;
+  padding: 22px;
   box-shadow: var(--sombra-card);
 }
 
@@ -210,13 +238,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--borde);
 }
 
 .filter-header h3 {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--azul);
 }
@@ -235,7 +263,7 @@ body {
 }
 
 .filter-group {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .filter-group label {
@@ -274,10 +302,10 @@ body {
 
 .input-search-wrapper input {
   width: 100%;
-  padding: 10px 12px 10px 36px;
+  padding: 11px 12px 11px 36px;
   border: 1px solid var(--borde);
   border-radius: var(--radio-md);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   outline: none;
   transition: var(--transicion);
 }
@@ -290,22 +318,22 @@ body {
 
 .custom-select {
   width: 100%;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border: 1px solid var(--borde);
   border-radius: var(--radio-md);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   background-color: white;
   outline: none;
   cursor: pointer;
   transition: var(--transicion);
 }
 
-/* Lista de Checkboxes Multicolor Dinámicos */
+/* ================= LISTA DE CHECKBOXES MULTICOLOR DINÁMICOS ================= */
 .colores-checkbox-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  max-height: 240px;
+  gap: 6px;
+  max-height: 280px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -314,15 +342,22 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 8px;
+  border: 1.5px solid transparent;
   cursor: pointer;
   transition: var(--transicion);
   user-select: none;
+  touch-action: manipulation;
 }
 
 .color-checkbox-item:hover {
-  background-color: var(--fondo);
+  background-color: #F3F4F6;
+}
+
+.color-checkbox-item.selected {
+  background-color: rgba(201, 162, 39, 0.1);
+  border-color: var(--dorado);
 }
 
 .color-checkbox-left {
@@ -336,36 +371,43 @@ body {
   height: 16px;
   accent-color: var(--azul);
   cursor: pointer;
+  pointer-events: none; /* Delegamos el evento al contenedor para evitar doble trigger */
 }
 
 .color-swatch-circle {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.15);
   display: inline-block;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .color-name-text {
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   font-weight: 500;
   color: var(--texto);
+}
+
+.color-checkbox-item.selected .color-name-text {
+  font-weight: 700;
+  color: var(--azul);
 }
 
 .color-count-badge {
   font-size: 0.72rem;
   color: var(--texto-secundario);
   background: var(--fondo);
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 12px;
   font-weight: 600;
 }
 
 .loading-colors {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--texto-atenuado);
   font-style: italic;
-  padding: 8px 0;
+  padding: 10px 0;
 }
 
 /* Botones de acción general */
@@ -373,10 +415,10 @@ body {
   background: white;
   border: 1px solid var(--borde);
   color: var(--azul);
-  padding: 9px 14px;
+  padding: 10px 14px;
   border-radius: var(--radio-md);
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -398,7 +440,7 @@ body {
   background: var(--dorado);
   color: var(--azul);
   border: none;
-  padding: 12px 20px;
+  padding: 13px 20px;
   border-radius: var(--radio-md);
   font-weight: 700;
   font-size: 0.95rem;
@@ -425,31 +467,31 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--borde);
 }
 
 .catalog-header h2 {
-  font-size: 1.45rem;
+  font-size: 1.55rem;
   font-weight: 800;
   color: var(--azul);
 }
 
 .text-muted {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--texto-secundario);
 }
 
 .sync-indicator {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--verde-exito);
   display: flex;
   align-items: center;
   gap: 6px;
   background: rgba(22, 163, 74, 0.1);
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 20px;
 }
 
@@ -473,7 +515,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 70px 20px;
   background: white;
   border-radius: var(--radio-lg);
   border: 1px solid var(--borde);
@@ -481,9 +523,9 @@ body {
 }
 
 .spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid var(--borde);
+  width: 40px;
+  height: 40px;
+  border: 3.5px solid var(--borde);
   border-top-color: var(--dorado);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -493,11 +535,18 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ================= GRILLA DE PRODUCTOS ================= */
+/* ================= GRILLA DE PRODUCTOS PC-FIRST (16:9) ================= */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+@media (min-width: 1440px) {
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 28px;
+  }
 }
 
 /* Tarjeta Modo Usuario (Apple Store Style) */
@@ -515,17 +564,17 @@ body {
 
 .product-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(11, 37, 69, 0.1);
+  box-shadow: var(--sombra-hover);
   border-color: rgba(201, 162, 39, 0.4);
 }
 
 .card-img-box {
   background-color: #F9FAFB;
-  height: 240px;
+  height: 260px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 18px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -535,11 +584,11 @@ body {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.3s ease;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card-img-box:hover .card-img {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .badge-discount {
@@ -557,27 +606,30 @@ body {
 
 .badge-zoom-hint {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  bottom: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
   color: var(--azul);
-  padding: 4px 6px;
+  padding: 4px 8px;
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 4px;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transform: translateY(4px);
+  transition: var(--transicion);
 }
 
 .card-img-box:hover .badge-zoom-hint {
   opacity: 1;
+  transform: translateY(0);
 }
 
 .card-info {
-  padding: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -591,15 +643,15 @@ body {
 }
 
 .color-dot {
-  width: 11px;
-  height: 11px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.15);
   display: inline-block;
 }
 
 .card-category {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.8px;
   color: var(--texto-secundario);
@@ -607,17 +659,17 @@ body {
 }
 
 .card-title {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--texto);
   margin-bottom: 8px;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .card-models-summary {
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   color: var(--texto-atenuado);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .card-price-row {
@@ -628,7 +680,7 @@ body {
 }
 
 .card-price-final {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--azul);
 }
@@ -638,7 +690,7 @@ body {
 }
 
 .card-price-original {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   text-decoration: line-through;
   color: var(--texto-atenuado);
 }
@@ -648,10 +700,10 @@ body {
   background: white;
   border: 1.5px solid var(--borde);
   border-radius: var(--radio-lg);
-  padding: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   box-shadow: var(--sombra-card);
   transition: var(--transicion);
 }
@@ -668,8 +720,8 @@ body {
 }
 
 .employee-img-preview-box {
-  width: 80px;
-  height: 80px;
+  width: 84px;
+  height: 84px;
   border-radius: var(--radio-md);
   background: #F9FAFB;
   border: 1px solid var(--borde);
@@ -726,8 +778,8 @@ body {
 
 .employee-input {
   width: 100%;
-  padding: 8px 10px;
-  font-size: 0.85rem;
+  padding: 9px 12px;
+  font-size: 0.88rem;
   border: 1px solid var(--borde);
   border-radius: 8px;
   outline: none;
@@ -756,7 +808,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 8px;
+  padding-top: 10px;
   border-top: 1px solid var(--borde);
 }
 
@@ -764,21 +816,22 @@ body {
   background: var(--azul);
   color: white;
   border: none;
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  transition: var(--transicion);
 }
 
 .btn-guardar-card:hover {
   background: var(--azul-claro);
 }
 
-/* ================= MODAL / POPUP EN MODO USUARIO ================= */
+/* ================= MODAL / POPUP EN MODO USUARIO (16:9 PC Optimizado) ================= */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -788,7 +841,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
   z-index: 1000;
   animation: fadeIn 0.2s ease;
 }
@@ -796,7 +849,8 @@ body {
 .modal-container {
   background: white;
   border-radius: 20px;
-  max-width: 780px;
+  max-width: 860px;
+  max-height: 85vh;
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -816,7 +870,7 @@ body {
 
 .modal-close {
   position: absolute;
-  top: 14px;
+  top: 16px;
   right: 18px;
   background: rgba(0, 0, 0, 0.06);
   border: none;
@@ -841,9 +895,11 @@ body {
 .modal-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
-@media (max-width: 650px) {
+@media (max-width: 720px) {
   .modal-body {
     grid-template-columns: 1fr;
   }
@@ -851,7 +907,7 @@ body {
 
 .modal-image-wrapper {
   background: #F9FAFB;
-  padding: 30px;
+  padding: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -859,12 +915,12 @@ body {
 
 .modal-img {
   max-width: 100%;
-  max-height: 340px;
+  max-height: 360px;
   object-fit: contain;
 }
 
 .modal-info {
-  padding: 32px 28px;
+  padding: 36px 32px;
   display: flex;
   flex-direction: column;
 }
@@ -882,7 +938,7 @@ body {
 }
 
 .modal-title {
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: 800;
   color: var(--azul);
   margin-bottom: 12px;
@@ -893,17 +949,17 @@ body {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .modal-price {
-  font-size: 1.45rem;
+  font-size: 1.55rem;
   font-weight: 800;
   color: var(--azul);
 }
 
 .modal-price-original {
-  font-size: 0.95rem;
+  font-size: 1rem;
   text-decoration: line-through;
   color: var(--texto-atenuado);
 }
@@ -931,7 +987,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
 }
 
 .spec-label {
@@ -955,15 +1011,15 @@ body {
 .modelo-chip {
   background: var(--fondo);
   border: 1px solid var(--borde);
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: 6px;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: var(--texto);
 }
 
 .stock-badge {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--verde-exito);
 }

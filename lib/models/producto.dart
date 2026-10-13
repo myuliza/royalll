@@ -51,14 +51,17 @@ class Producto {
     return limpio.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-  /// Extrae URLs válidas soportando tanto listas 'fotosUrls' como strings 'imagenUrl' / 'fotoUrl'.
+  /// Extrae URLs válidas soportando tanto listas 'fotosUrls' como strings 'imagenUrl' / 'fotoUrl' (red o assets locales).
   static List<String> _extraerFotos(Map<String, dynamic> data) {
     final List<String> urls = [];
+    bool esValido(String s) =>
+        s.startsWith('http://') || s.startsWith('https://') || s.startsWith('assets/');
+
     if (data['fotosUrls'] is List) {
       for (final item in data['fotosUrls']) {
         if (item != null) {
           final s = item.toString().trim();
-          if (s.isNotEmpty && (s.startsWith('http://') || s.startsWith('https://'))) {
+          if (s.isNotEmpty && esValido(s)) {
             urls.add(s);
           }
         }
@@ -66,13 +69,13 @@ class Producto {
     }
     if (urls.isEmpty && data['imagenUrl'] != null) {
       final s = data['imagenUrl'].toString().trim();
-      if (s.isNotEmpty && (s.startsWith('http://') || s.startsWith('https://'))) {
+      if (s.isNotEmpty && esValido(s)) {
         urls.add(s);
       }
     }
     if (urls.isEmpty && data['fotoUrl'] != null) {
       final s = data['fotoUrl'].toString().trim();
-      if (s.isNotEmpty && (s.startsWith('http://') || s.startsWith('https://'))) {
+      if (s.isNotEmpty && esValido(s)) {
         urls.add(s);
       }
     }
@@ -129,6 +132,19 @@ class Producto {
       return (precio - desc).clamp(0, precio);
     }
     return precio;
+  }
+
+  /// Retorna un nombre legible y limpio para el color del producto.
+  String get colorLegible {
+    if (codigoColor.isNotEmpty) {
+      // Si tiene sufijo abreviado (ej. "AZUL AZU", "ROJO ROJ"), tomar solo la primera palabra o parte limpia
+      final partes = codigoColor.trim().split(RegExp(r'\s+'));
+      if (partes.length == 2 && partes[1].length == 3 && partes[0].toUpperCase().startsWith(partes[1].toUpperCase())) {
+        return partes[0].toUpperCase();
+      }
+      return codigoColor.toUpperCase();
+    }
+    return '';
   }
 
   String get precioFormateado => formatPrice(precioFinal);

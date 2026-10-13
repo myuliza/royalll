@@ -6,9 +6,16 @@ import 'theme/app_theme.dart';
 import 'providers/carrito_provider.dart';
 import 'screens/home_screen.dart';
 
+import 'utils/catalogo_seeder.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Sincronizar catálogo automáticamente para asegurar que todas las fotos apunten a los .jpg existentes
+  CatalogoSeeder.sincronizarFotosYNomenclatura().catchError((e) {
+    debugPrint('Error en sincronización automática: $e');
+    return 0;
+  });
   runApp(const RoyalApp());
 }
 

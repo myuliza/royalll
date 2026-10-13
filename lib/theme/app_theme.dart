@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Paleta e identidad visual de Royal.
-/// - Azul como color base/estructural (AppBar, títulos, fondos de contraste, navegación)
-/// - Dorado como color de acento y prestigio (badges, acciones clave, detalles premium)
-/// - Neutrales limpios inspirados en Apple Store para máxima legibilidad de productos.
+/// Paleta e identidad visual de Royale Cell.
+/// - Negro/oscuro como color base (AppBar, navegación, fondos de contraste)
+/// - Cyan/azul eléctrico como acento principal (badges, acciones clave, detalles premium)
+/// - Inspirado en los tonos del logo Royale CELL (negro + cyan + plata).
 class AppColors {
-  // Paleta principal intacta
-  static const dorado = Color(0xFFC9A227);
-  static const doradoClaro = Color(0xFFE4C766);
-  static const doradoOscuro = Color(0xFF9A7B1C);
+  // Acento principal — cyan/azul eléctrico (antes dorado)
+  static const dorado = Color(0xFF00B4D8);
+  static const doradoClaro = Color(0xFF38BDF8);
+  static const doradoOscuro = Color(0xFF0891B2);
 
-  static const azul = Color(0xFF0B2545);
-  static const azulClaro = Color(0xFF13315C);
-  static const azulProfundo = Color(0xFF071930);
+  // Fondo oscuro — negro profundo como el logo
+  static const azul = Color(0xFF0D1117);
+  static const azulClaro = Color(0xFF161B22);
+  static const azulProfundo = Color(0xFF010409);
 
   // Tonos de soporte y fondo
   static const fondo = Color(0xFFF7F8FA);

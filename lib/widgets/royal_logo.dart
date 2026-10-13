@@ -8,16 +8,30 @@ class RoyalLogo extends StatelessWidget {
   final double size;
   final bool isLight; // Si true, texto blanco (para AppBar azul). Si false, texto azul.
   final bool showSubtitle;
+  final String? imagePath; // Ruta opcional a un archivo .jpg o .png (ej. 'assets/logo.jpg')
 
   const RoyalLogo({
     super.key,
     this.size = 28,
     this.isLight = true,
     this.showSubtitle = false,
+    this.imagePath,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (imagePath != null && imagePath!.isNotEmpty) {
+      return Image.asset(
+        imagePath!,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultLogo(),
+      );
+    }
+    return _buildDefaultLogo();
+  }
+
+  Widget _buildDefaultLogo() {
     final textColor = isLight ? Colors.white : AppColors.azul;
     final subtitleColor = isLight ? AppColors.doradoClaro : AppColors.textoSecundario;
 

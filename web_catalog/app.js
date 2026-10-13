@@ -1,6 +1,7 @@
 /**
  * ROYAL IPHONE CASES — APLICACIÓN WEB
  * Integración directa con Firebase Firestore en tiempo real (Firebase JS SDK v10 Modular)
+ * Versión Auditada y Optimizada PC-First (16:9)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -9,14 +10,11 @@ import {
   collection, 
   onSnapshot, 
   doc, 
-  updateDoc, 
-  addDoc, 
-  getDocs, 
-  writeBatch 
+  updateDoc 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 /* ==========================================================================
-   1. CONFIGURACIÓN DE FIREBASE (Plantilla configurable)
+   1. CONFIGURACIÓN DE FIREBASE
    ========================================================================== */
 const firebaseConfig = {
   apiKey: "AIzaSyBf2aDGyqNQYbygayCFnp8k3Q7lvPzdddc",
@@ -39,7 +37,7 @@ let productosState = [];               // Lista sincronizada desde Firestore
 let modoActual = "usuario";             // 'usuario' | 'empleado'
 let busquedaFiltro = "";                // Filtro de texto
 let modeloFiltro = "todos";             // Filtro de modelo
-let coloresFiltro = new Set();          // Conjunto de colores seleccionados (Multicolor)
+let coloresFiltro = new Set();          // Conjunto de claves de colores seleccionados (minúsculas)
 let coloresDisponibles = [];            // Extraídos dinámicamente de Firebase
 
 // Placeholder SVG elegante en caso de imagen vacía o error 404
@@ -56,7 +54,6 @@ const coloresCheckboxContainer = document.getElementById("coloresCheckboxContain
 const inputBusqueda = document.getElementById("inputBusqueda");
 const selectModelo = document.getElementById("selectModelo");
 const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
-const btnPoblarSemilla = document.getElementById("btnPoblarSemilla");
 const btnModoUsuario = document.getElementById("btnModoUsuario");
 const btnModoEmpleado = document.getElementById("btnModoEmpleado");
 const bannerEmpleado = document.getElementById("bannerEmpleado");
@@ -77,69 +74,180 @@ const modalStock = document.getElementById("modalStock");
 const btnPedirWhatsapp = document.getElementById("btnPedirWhatsapp");
 
 /* ==========================================================================
-   4. DIAGNÓSTICO Y CORRECCIÓN DE IMÁGENES
+   4. UTILIDADES DE SEGURIDAD Y PARSEO
    ========================================================================== */
+/**
+ * Sanitiza texto para evitar ataques XSS al inyectar cadenas dinámicas en HTML.
+ */
+function escapeHtml(str) {
+  if (typeof str !== "string") return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * Limpia y parsea de forma segura valores numéricos de precio.
+ * Tolera cadenas como "85.000 Gs", "120.000", números o undefined.
+ */
+function parsearNumeroSeguro(val, fallback = 0) {
+  if (typeof val === "number" && !isNaN(val)) return val;
+  if (typeof val === "string") {
+    const cleaned = val.replace(/[^\d]/g, "");
+    const parsed = parseInt(cleaned, 10);
+    return isNaN(parsed) ? fallback : parsed;
+  }
+  return fallback;
+}
+
 /**
  * Resuelve la URL válida de imagen para un producto soportando:
  * 1. Propiedad directa `imagenUrl`
  * 2. Arreglo `fotosUrls` (primer elemento)
- * 3. Fallback a SVG en caso de estar vacío o inválido.
+ * 3. Normalización automática de .png a .jpg si es un asset local
+ * 4. Fallback a SVG en caso de estar vacío o inválido.
  */
 function resolverUrlImagen(producto) {
-  if (producto.imagenUrl && typeof producto.imagenUrl === "string" && producto.imagenUrl.trim() !== "") {
-    return producto.imagenUrl.trim();
+  let url = "";
+  if (producto && producto.imagenUrl && typeof producto.imagenUrl === "string" && producto.imagenUrl.trim() !== "") {
+    url = producto.imagenUrl.trim();
+  } else if (producto && Array.isArray(producto.fotosUrls) && producto.fotosUrls.length > 0 && typeof producto.fotosUrls[0] === "string" && producto.fotosUrls[0].trim() !== "") {
+    url = producto.fotosUrls[0].trim();
   }
-  if (Array.isArray(producto.fotosUrls) && producto.fotosUrls.length > 0 && producto.fotosUrls[0]) {
-    return producto.fotosUrls[0].trim();
+
+  if (!url) return PLACEHOLDER_SVG;
+
+  // Si apunta a assets y tiene extensión .png, normalizar a .jpg que es el archivo real
+  if (url.startsWith("assets/") && url.toLowerCase().endsWith(".png")) {
+    url = url.replace(/\.png$/i, ".jpg");
   }
-  return PLACEHOLDER_SVG;
+
+  return url;
+}
+
+/**
+ * Mapeo canónico de nombres comunes y códigos hexadecimales.
+ */
+const PALETA_COLORES_CANONICA = {
+  negro: { nombre: "Negro", hex: "#000000" },
+  blanco: { nombre: "Blanco", hex: "#FFFFFF" },
+  "azul midnight": { nombre: "Azul Midnight", hex: "#0B2545" },
+  azul: { nombre: "Azul", hex: "#13315C" },
+  cyan: { nombre: "Cyan / Royale", hex: "#00B4D8" },
+  royale: { nombre: "Royale Cell", hex: "#00B4D8" },
+  cyber: { nombre: "Azul Cyber", hex: "#0284C7" },
+  neon: { nombre: "Neón Naranja", hex: "#FF5722" },
+  "neón": { nombre: "Neón Naranja", hex: "#FF5722" },
+  botanical: { nombre: "Dark Botanical", hex: "#334155" },
+  antioch: { nombre: "Dark / Antioch", hex: "#334155" },
+  nightfall: { nombre: "Nightfall", hex: "#0B2545" },
+  dorado: { nombre: "Dorado", hex: "#C9A227" },
+  oro: { nombre: "Dorado", hex: "#C9A227" },
+  transparente: { nombre: "Transparente", hex: "#E5E7EB" },
+  rosa: { nombre: "Rosa", hex: "#F472B6" },
+  "rosa pastel": { nombre: "Rosa", hex: "#F472B6" },
+  marrón: { nombre: "Marrón", hex: "#78350F" },
+  marron: { nombre: "Marrón", hex: "#78350F" },
+  rojo: { nombre: "Rojo", hex: "#DC2626" },
+  verde: { nombre: "Verde", hex: "#16A34A" },
+  morado: { nombre: "Morado / Lila", hex: "#7E22CE" },
+  lila: { nombre: "Lila", hex: "#7E22CE" },
+  lavanda: { nombre: "Lavanda", hex: "#7C3AED" },
+  "purple fog": { nombre: "Purple Fog", hex: "#7E22CE" },
+  plata: { nombre: "Plata", hex: "#E2E8F0" },
+  titanio: { nombre: "Titanio", hex: "#64748B" },
+  gris: { nombre: "Gris / Titanio", hex: "#64748B" },
+  amarillo: { nombre: "Amarillo", hex: "#FBBF24" },
+};
+
+const HEX_A_NOMBRE = {
+  "#000000": "Negro",
+  "#FFFFFF": "Blanco",
+  "#0B2545": "Azul",
+  "#00B4D8": "Cyan / Royale",
+  "#0284C7": "Azul Cyber",
+  "#13315C": "Azul Marino",
+  "#C9A227": "Dorado",
+  "#FF5722": "Neón Naranja",
+  "#334155": "Dark / Antioch",
+  "#E5E7EB": "Transparente",
+  "#F472B6": "Rosa",
+  "#78350F": "Marrón",
+  "#DC2626": "Rojo",
+  "#16A34A": "Verde",
+  "#7E22CE": "Morado / Lila",
+  "#7C3AED": "Lavanda",
+  "#E2E8F0": "Plata",
+  "#64748B": "Gris / Titanio",
+  "#94A3B8": "Titanio",
+  "#FBBF24": "Amarillo",
+};
+
+/**
+ * Devuelve la clave normalizada canónica (en minúsculas y sin espacios redundantes).
+ */
+function normalizarColorKey(producto) {
+  if (!producto) return "estandar";
+  if (typeof producto.color === "string" && producto.color.trim() !== "") {
+    return producto.color.trim().toLowerCase();
+  }
+  if (typeof producto.colorHex === "string" && producto.colorHex.trim() !== "") {
+    const hex = producto.colorHex.toUpperCase().trim();
+    if (HEX_A_NOMBRE[hex]) {
+      return HEX_A_NOMBRE[hex].toLowerCase();
+    }
+    return hex.toLowerCase();
+  }
+  return "estandar";
 }
 
 /**
  * Normaliza y formatea el nombre legible del color.
  */
 function normalizarColor(producto) {
-  if (producto.color && typeof producto.color === "string" && producto.color.trim() !== "") {
-    return producto.color.trim();
+  if (!producto) return "Estándar";
+  if (typeof producto.color === "string" && producto.color.trim() !== "") {
+    const raw = producto.color.trim();
+    const key = raw.toLowerCase();
+    if (PALETA_COLORES_CANONICA[key]) {
+      return PALETA_COLORES_CANONICA[key].nombre;
+    }
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
   }
-  // Mapeo por hex si existe
-  const hex = (producto.colorHex || "").toUpperCase().trim();
-  const mapeoHex = {
-    "#000000": "Negro",
-    "#FFFFFF": "Blanco",
-    "#0B2545": "Azul Midnight",
-    "#13315C": "Azul",
-    "#C9A227": "Dorado",
-    "#E5E7EB": "Transparente",
-    "#F472B6": "Rosa Pastel",
-    "#78350F": "Marrón",
-    "#DC2626": "Rojo"
-  };
-  return mapeoHex[hex] || "Estándar";
+  if (typeof producto.colorHex === "string" && producto.colorHex.trim() !== "") {
+    const hex = producto.colorHex.toUpperCase().trim();
+    if (HEX_A_NOMBRE[hex]) {
+      return HEX_A_NOMBRE[hex];
+    }
+    return hex;
+  }
+  return "Estándar";
 }
 
+/**
+ * Resuelve el color hexadecimal asegurando compatibilidad visual directa.
+ */
 function resolverColorHex(producto) {
-  if (producto.colorHex && producto.colorHex.startsWith("#")) {
-    return producto.colorHex;
+  if (!producto) return "#C9A227";
+  if (typeof producto.colorHex === "string" && producto.colorHex.startsWith("#") && producto.colorHex.length >= 4) {
+    return producto.colorHex.trim();
   }
-  const nombre = normalizarColor(producto).toLowerCase();
-  const mapa = {
-    negro: "#000000",
-    blanco: "#FFFFFF",
-    azul: "#0B2545",
-    "azul midnight": "#0B2545",
-    dorado: "#C9A227",
-    oro: "#C9A227",
-    transparente: "#E5E7EB",
-    rosa: "#F472B6",
-    marrón: "#78350F",
-    rojo: "#DC2626"
-  };
-  return mapa[nombre] || "#C9A227";
+  const key = normalizarColorKey(producto);
+  if (PALETA_COLORES_CANONICA[key]) {
+    return PALETA_COLORES_CANONICA[key].hex;
+  }
+  return "#C9A227"; // Dorado Royal por defecto
 }
 
+/**
+ * Formatea valores en Guaraníes (Gs.) con separador de miles.
+ */
 function formatearGs(monto) {
-  return (monto || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " Gs";
+  const num = parsearNumeroSeguro(monto, 0);
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " Gs";
 }
 
 /* ==========================================================================
@@ -154,89 +262,133 @@ function iniciarSincronizacionFirebase() {
 
     if (snapshot.empty) {
       productosState = [];
-      renderizarColoresDinamicos();
+      actualizarListaColoresDinamicos();
       renderizarCatalogo();
-      mostrarToast("La base de datos está vacía. Puedes presionar 'Poblar datos semilla'.");
       return;
     }
 
     productosState = snapshot.docs.map(docSnap => {
-      const data = docSnap.data();
+      const data = docSnap.data() || {};
+      const safeColor = data.color || normalizarColor(data);
+      const safeHex = data.colorHex || resolverColorHex(data);
+
       return {
         id: docSnap.id,
-        nombre: data.nombre || "Funda iPhone",
-        categoria: data.categoria || "solido",
-        modelosCompatibles: Array.isArray(data.modelosCompatibles) ? data.modelosCompatibles : ["iPhone 15"],
-        precio: typeof data.precio === "number" ? data.precio : parseInt(data.precio) || 85000,
-        colorHex: data.colorHex || "#000000",
-        color: data.color || normalizarColor(data),
-        stock: typeof data.stock === "number" ? data.stock : 10,
-        enDescuento: !!data.enDescuento,
-        porcentajeDescuento: data.porcentajeDescuento || 0,
+        nombre: data.nombre ? String(data.nombre).trim() : "Funda iPhone",
+        categoria: data.categoria ? String(data.categoria).trim() : "solido",
+        modelosCompatibles: Array.isArray(data.modelosCompatibles) && data.modelosCompatibles.length > 0
+          ? data.modelosCompatibles.map(m => String(m).trim())
+          : ["iPhone 15"],
+        precio: parsearNumeroSeguro(data.precio, 85000),
+        colorHex: safeHex,
+        color: safeColor,
+        stock: parsearNumeroSeguro(data.stock, 0),
+        enDescuento: Boolean(data.enDescuento),
+        porcentajeDescuento: parsearNumeroSeguro(data.porcentajeDescuento, 0),
         imagenUrl: resolverUrlImagen(data),
         fotosUrls: Array.isArray(data.fotosUrls) ? data.fotosUrls : []
       };
     });
 
-    // Actualizar colores dinámicamente según lo que vino de Firebase
+    // Actualizar colores dinámicamente y renderizar catálogo
     actualizarListaColoresDinamicos();
     renderizarCatalogo();
   }, (error) => {
     console.error("Error al sincronizar con Firebase:", error);
-    estadoCarga.innerHTML = `<p style="color:red">Error de conexión: ${error.message}</p>`;
+    estadoCarga.innerHTML = `<p style="color:#DC2626; font-weight:600;">Error de conexión: ${escapeHtml(error.message)}</p>`;
   });
 }
 
 /* ==========================================================================
-   6. FILTRADO MULTICOLOR DINÁMICO
+   6. FILTRADO MULTICOLOR DINÁMICO (SOLUCIÓN PASO 4)
    ========================================================================== */
 function actualizarListaColoresDinamicos() {
   const mapaColores = new Map();
 
   productosState.forEach(p => {
-    const nombreColor = normalizarColor(p);
+    const key = normalizarColorKey(p);
+    const nombreLegible = normalizarColor(p);
     const hex = resolverColorHex(p);
-    if (!mapaColores.has(nombreColor)) {
-      mapaColores.set(nombreColor, { nombre: nombreColor, hex: hex, count: 1 });
+
+    if (!mapaColores.has(key)) {
+      mapaColores.set(key, { key, nombre: nombreLegible, hex, count: 1 });
     } else {
-      mapaColores.get(nombreColor).count++;
+      mapaColores.get(key).count++;
     }
   });
 
-  coloresDisponibles = Array.from(mapaColores.values());
+  coloresDisponibles = Array.from(mapaColores.values()).sort((a, b) => b.count - a.count);
   renderizarColoresDinamicos();
+}
+
+function alternarFiltroColor(colorKey) {
+  if (coloresFiltro.has(colorKey)) {
+    coloresFiltro.delete(colorKey);
+  } else {
+    coloresFiltro.add(colorKey);
+  }
+  actualizarEstilosVisualesColores();
+  renderizarCatalogo();
+}
+
+function actualizarEstilosVisualesColores() {
+  const items = coloresCheckboxContainer.querySelectorAll(".color-checkbox-item");
+  items.forEach(item => {
+    const key = item.getAttribute("data-color-key");
+    const isSelected = coloresFiltro.has(key);
+    item.classList.toggle("selected", isSelected);
+    item.setAttribute("aria-checked", isSelected ? "true" : "false");
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    if (checkbox) checkbox.checked = isSelected;
+  });
 }
 
 function renderizarColoresDinamicos() {
   if (coloresDisponibles.length === 0) {
-    coloresCheckboxContainer.innerHTML = '<div class="loading-colors">No hay colores disponibles</div>';
+    coloresCheckboxContainer.innerHTML = '<div class="loading-colors">No hay colores registrados</div>';
     return;
   }
 
+  // Se renderizan elementos estructurados con data-color-key para prevenir fallos de eventos
   coloresCheckboxContainer.innerHTML = coloresDisponibles.map(c => {
-    const isChecked = coloresFiltro.has(c.nombre);
+    const isSelected = coloresFiltro.has(c.key);
     return `
-      <label class="color-checkbox-item">
+      <div 
+        class="color-checkbox-item ${isSelected ? "selected" : ""}" 
+        data-color-key="${escapeHtml(c.key)}"
+        role="checkbox"
+        aria-checked="${isSelected ? "true" : "false"}"
+        tabindex="0"
+      >
         <div class="color-checkbox-left">
-          <input type="checkbox" value="${c.nombre}" ${isChecked ? "checked" : ""}>
-          <span class="color-swatch-circle" style="background-color: ${c.hex}"></span>
-          <span class="color-name-text">${c.nombre}</span>
+          <input 
+            type="checkbox" 
+            tabindex="-1"
+            aria-hidden="true"
+            ${isSelected ? "checked" : ""}
+          >
+          <span class="color-swatch-circle" style="background-color: ${escapeHtml(c.hex)}"></span>
+          <span class="color-name-text">${escapeHtml(c.nombre)}</span>
         </div>
         <span class="color-count-badge">${c.count}</span>
-      </label>
+      </div>
     `;
   }).join("");
 
-  // Event listener para selección múltiple
-  coloresCheckboxContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => {
-    chk.addEventListener("change", (e) => {
-      const colorVal = e.target.value;
-      if (e.target.checked) {
-        coloresFiltro.add(colorVal);
-      } else {
-        coloresFiltro.delete(colorVal);
+  // Controladores robustos: Click y Teclado (Accesibilidad WCAG)
+  coloresCheckboxContainer.querySelectorAll(".color-checkbox-item").forEach(item => {
+    const key = item.getAttribute("data-color-key");
+
+    item.addEventListener("click", (e) => {
+      e.preventDefault(); // Evita doble disparo nativo del checkbox
+      alternarFiltroColor(key);
+    });
+
+    item.addEventListener("keydown", (e) => {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        alternarFiltroColor(key);
       }
-      renderizarCatalogo();
     });
   });
 }
@@ -248,10 +400,11 @@ function filtrarProductos() {
   return productosState.filter(p => {
     // 1. Filtro por texto de búsqueda
     if (busquedaFiltro.trim() !== "") {
-      const q = busquedaFiltro.toLowerCase();
+      const q = busquedaFiltro.toLowerCase().trim();
       const coincideNombre = p.nombre.toLowerCase().includes(q);
       const coincideModelo = p.modelosCompatibles.some(m => m.toLowerCase().includes(q));
-      if (!coincideNombre && !coincideModelo) return false;
+      const coincideCategoria = p.categoria.toLowerCase().includes(q);
+      if (!coincideNombre && !coincideModelo && !coincideCategoria) return false;
     }
 
     // 2. Filtro por modelo de iPhone
@@ -259,10 +412,10 @@ function filtrarProductos() {
       if (!p.modelosCompatibles.includes(modeloFiltro)) return false;
     }
 
-    // 3. FILTRADO MULTICOLOR: Si hay colores seleccionados, el producto debe coincidir con alguno
+    // 3. FILTRADO MULTICOLOR: Si hay colores seleccionados, el producto debe coincidir
     if (coloresFiltro.size > 0) {
-      const colorProducto = normalizarColor(p);
-      if (!coloresFiltro.has(colorProducto)) return false;
+      const key = normalizarColorKey(p);
+      if (!coloresFiltro.has(key)) return false;
     }
 
     return true;
@@ -304,12 +457,12 @@ function renderizarModoUsuario(productos) {
     const imgUrl = resolverUrlImagen(p);
 
     return `
-      <article class="product-card" data-id="${p.id}">
-        <div class="card-img-box" data-action="open-modal" data-id="${p.id}">
+      <article class="product-card" data-id="${escapeHtml(p.id)}">
+        <div class="card-img-box" data-action="open-modal" data-id="${escapeHtml(p.id)}">
           ${tieneDesc ? `<span class="badge-discount">-${p.porcentajeDescuento}% OFF</span>` : ""}
           <img 
-            src="${imgUrl}" 
-            alt="${p.nombre}" 
+            src="${escapeHtml(imgUrl)}" 
+            alt="${escapeHtml(p.nombre)}" 
             class="card-img" 
             loading="lazy" 
             onerror="this.onerror=null; this.src='${PLACEHOLDER_SVG}';"
@@ -322,12 +475,12 @@ function renderizarModoUsuario(productos) {
 
         <div class="card-info">
           <div class="card-meta-row">
-            <span class="color-dot" style="background-color: ${colorHex}"></span>
-            <span class="card-category">${p.categoria} &bull; ${colorNombre}</span>
+            <span class="color-dot" style="background-color: ${escapeHtml(colorHex)}"></span>
+            <span class="card-category">${escapeHtml(p.categoria)} &bull; ${escapeHtml(colorNombre)}</span>
           </div>
 
-          <h3 class="card-title">${p.nombre}</h3>
-          <p class="card-models-summary">Compatible con ${p.modelosCompatibles.slice(0, 2).join(", ")}${p.modelosCompatibles.length > 2 ? '...' : ''}</p>
+          <h3 class="card-title">${escapeHtml(p.nombre)}</h3>
+          <p class="card-models-summary">Compatible con ${escapeHtml(p.modelosCompatibles.slice(0, 2).join(", "))}${p.modelosCompatibles.length > 2 ? '...' : ''}</p>
 
           <div class="card-price-row">
             <span class="card-price-final ${tieneDesc ? 'has-discount' : ''}">${formatearGs(precioFinal)}</span>
@@ -356,23 +509,23 @@ function renderizarModoEmpleado(productos) {
     const colorHex = resolverColorHex(p);
 
     return `
-      <article class="employee-card" data-id="${p.id}">
+      <article class="employee-card" data-id="${escapeHtml(p.id)}">
         <!-- Encabezado con previsualización en tiempo real -->
         <div class="employee-header-row">
           <div class="employee-img-preview-box">
             <img 
-              id="preview-img-${p.id}" 
-              src="${imgUrl}" 
-              alt="${p.nombre}" 
+              id="preview-img-${escapeHtml(p.id)}" 
+              src="${escapeHtml(imgUrl)}" 
+              alt="${escapeHtml(p.nombre)}" 
               class="employee-img-preview" 
               onerror="this.onerror=null; this.src='${PLACEHOLDER_SVG}';"
             >
           </div>
           <div class="employee-top-info">
-            <span class="employee-id-tag">ID: ${p.id.substring(0, 10)}...</span>
+            <span class="employee-id-tag">ID: ${escapeHtml(p.id.substring(0, 10))}...</span>
             <div style="display:flex; align-items:center; gap:6px;">
-              <span class="color-dot" style="background-color: ${colorHex}"></span>
-              <span style="font-size:0.75rem; font-weight:700;">${normalizarColor(p)}</span>
+              <span class="color-dot" style="background-color: ${escapeHtml(colorHex)}"></span>
+              <span style="font-size:0.75rem; font-weight:700;">${escapeHtml(normalizarColor(p))}</span>
             </div>
             <span class="employee-stock-chip">Stock: ${p.stock} un.</span>
           </div>
@@ -380,32 +533,32 @@ function renderizarModoEmpleado(productos) {
 
         <!-- Campo 1: Nombre de la funda -->
         <div class="employee-field">
-          <label class="employee-label" for="input-nombre-${p.id}">
+          <label class="employee-label" for="input-nombre-${escapeHtml(p.id)}">
             <span>Nombre de la funda</span>
-            <span id="status-nombre-${p.id}" class="employee-save-status">Guardado &#10003;</span>
+            <span id="status-nombre-${escapeHtml(p.id)}" class="employee-save-status">Guardado &#10003;</span>
           </label>
           <input 
             type="text" 
-            id="input-nombre-${p.id}" 
+            id="input-nombre-${escapeHtml(p.id)}" 
             class="employee-input input-nombre" 
-            data-id="${p.id}" 
-            value="${p.nombre}" 
+            data-id="${escapeHtml(p.id)}" 
+            value="${escapeHtml(p.nombre)}" 
             placeholder="Nombre de producto"
           >
         </div>
 
         <!-- Campo 2: URL de la Imagen -->
         <div class="employee-field">
-          <label class="employee-label" for="input-imagen-${p.id}">
+          <label class="employee-label" for="input-imagen-${escapeHtml(p.id)}">
             <span>URL de imagen (Foto)</span>
-            <span id="status-imagen-${p.id}" class="employee-save-status">Guardado &#10003;</span>
+            <span id="status-imagen-${escapeHtml(p.id)}" class="employee-save-status">Guardado &#10003;</span>
           </label>
           <input 
             type="url" 
-            id="input-imagen-${p.id}" 
+            id="input-imagen-${escapeHtml(p.id)}" 
             class="employee-input input-imagen" 
-            data-id="${p.id}" 
-            value="${p.imagenUrl === PLACEHOLDER_SVG ? '' : p.imagenUrl}" 
+            data-id="${escapeHtml(p.id)}" 
+            value="${escapeHtml(p.imagenUrl === PLACEHOLDER_SVG ? '' : p.imagenUrl)}" 
             placeholder="https://ejemplo.com/foto.jpg"
           >
         </div>
@@ -415,7 +568,7 @@ function renderizarModoEmpleado(productos) {
           <span style="font-size:0.78rem; font-weight:700; color:var(--azul);">
             ${formatearGs(p.precio)}
           </span>
-          <button class="btn-guardar-card" data-id="${p.id}">
+          <button class="btn-guardar-card" data-id="${escapeHtml(p.id)}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
             Guardar en Firebase
           </button>
@@ -424,7 +577,6 @@ function renderizarModoEmpleado(productos) {
     `;
   }).join("");
 
-  // Configurar listeners de edición (blur, Enter y clic en botón)
   configurarListenersEmpleado();
 }
 
@@ -456,7 +608,6 @@ function configurarListenersEmpleado() {
 
     const guardarImagen = async () => {
       const nuevaUrl = input.value.trim();
-      // Actualizar previsualización inmediatamente en el DOM local
       const previewImg = document.getElementById(`preview-img-${id}`);
       if (previewImg) {
         previewImg.src = nuevaUrl || PLACEHOLDER_SVG;
@@ -492,14 +643,17 @@ function configurarListenersEmpleado() {
         if (previewImg) previewImg.src = u || PLACEHOLDER_SVG;
       }
 
-      await actualizarCampoFirebase(id, datos, null);
-      mostrarToast("¡Funda actualizada exitosamente en Firebase!");
+      const exito = await actualizarCampoFirebase(id, datos, null);
+      if (exito) {
+        mostrarToast("¡Funda actualizada exitosamente en Firebase!");
+      }
     });
   });
 }
 
 /**
  * Ejecuta updateDoc en Firestore y muestra feedback visual de guardado.
+ * Retorna true en éxito y false en error para sincronización con la UI.
  */
 async function actualizarCampoFirebase(id, datosActualizados, statusElementId) {
   try {
@@ -513,9 +667,11 @@ async function actualizarCampoFirebase(id, datosActualizados, statusElementId) {
         setTimeout(() => statusEl.classList.remove("visible"), 2500);
       }
     }
+    return true;
   } catch (error) {
     console.error("Error al actualizar en Firebase:", error);
     mostrarToast("Error al guardar: " + error.message);
+    return false;
   }
 }
 
@@ -554,7 +710,7 @@ function abrirModal(id) {
 
   // Modelos compatibles
   modalModelosList.innerHTML = p.modelosCompatibles.map(m => 
-    `<span class="modelo-chip">${m}</span>`
+    `<span class="modelo-chip">${escapeHtml(m)}</span>`
   ).join("");
 
   // Stock
@@ -585,168 +741,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ==========================================================================
-   10. POBLADO INICIAL (DATOS SEMILLA EN FIREBASE)
-   ========================================================================== */
-const DATOS_SEMILLA = [
-  {
-    nombre: "Funda Royal Titanium MagSafe",
-    categoria: "solido",
-    color: "Dorado",
-    colorHex: "#C9A227",
-    modelosCompatibles: ["iPhone 16 Pro Max", "iPhone 16 Pro"],
-    precio: 120000,
-    enDescuento: true,
-    porcentajeDescuento: 15,
-    stock: 20,
-    imagenUrl: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Royal Armor Negro Mate",
-    categoria: "solido",
-    color: "Negro",
-    colorHex: "#000000",
-    modelosCompatibles: ["iPhone 16 Pro Max", "iPhone 16 Pro", "iPhone 16"],
-    precio: 95000,
-    enDescuento: false,
-    porcentajeDescuento: 0,
-    stock: 15,
-    imagenUrl: "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Royal Silicone Azul Midnight",
-    categoria: "solido",
-    color: "Azul",
-    colorHex: "#0B2545",
-    modelosCompatibles: ["iPhone 16", "iPhone 15 Pro Max", "iPhone 15 Pro"],
-    precio: 85000,
-    enDescuento: true,
-    porcentajeDescuento: 20,
-    stock: 18,
-    imagenUrl: "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Clear Hybrid Antiamarilleo",
-    categoria: "transparente",
-    color: "Transparente",
-    colorHex: "#E5E7EB",
-    modelosCompatibles: ["iPhone 16", "iPhone 15", "iPhone 14", "iPhone 13"],
-    precio: 80000,
-    enDescuento: false,
-    porcentajeDescuento: 0,
-    stock: 30,
-    imagenUrl: "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Royal Frosted White Silk",
-    categoria: "solido",
-    color: "Blanco",
-    colorHex: "#FFFFFF",
-    modelosCompatibles: ["iPhone 15 Pro Max", "iPhone 15 Pro", "iPhone 15"],
-    precio: 90000,
-    enDescuento: false,
-    porcentajeDescuento: 0,
-    stock: 12,
-    imagenUrl: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Liquid Silicone Rosa Pastel",
-    categoria: "solido",
-    color: "Rosa",
-    colorHex: "#F472B6",
-    modelosCompatibles: ["iPhone 15", "iPhone 14", "iPhone 13"],
-    precio: 85000,
-    enDescuento: true,
-    porcentajeDescuento: 10,
-    stock: 14,
-    imagenUrl: "https://images.unsplash.com/photo-1580910051074-3eb694886505?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1580910051074-3eb694886505?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Royal Leather Vintage",
-    categoria: "solido",
-    color: "Marrón",
-    colorHex: "#78350F",
-    modelosCompatibles: ["iPhone 14 Pro Max", "iPhone 14 Pro"],
-    precio: 130000,
-    enDescuento: false,
-    porcentajeDescuento: 0,
-    stock: 8,
-    imagenUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Royal MagSafe Clear Glow",
-    categoria: "transparente",
-    color: "Transparente",
-    colorHex: "#E5E7EB",
-    modelosCompatibles: ["iPhone 14 Pro Max", "iPhone 14 Pro", "iPhone 14"],
-    precio: 95000,
-    enDescuento: true,
-    porcentajeDescuento: 15,
-    stock: 22,
-    imagenUrl: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Carbon Fiber Ultra Slim",
-    categoria: "solido",
-    color: "Negro",
-    colorHex: "#000000",
-    modelosCompatibles: ["iPhone 13 Pro Max", "iPhone 13 Pro", "iPhone 13"],
-    precio: 100000,
-    enDescuento: false,
-    porcentajeDescuento: 0,
-    stock: 16,
-    imagenUrl: "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=600&auto=format&fit=crop&q=80"]
-  },
-  {
-    nombre: "Funda Heavy Duty Shield Red",
-    categoria: "solido",
-    color: "Rojo",
-    colorHex: "#DC2626",
-    modelosCompatibles: ["iPhone 13 Pro Max", "iPhone 13"],
-    precio: 90000,
-    enDescuento: true,
-    porcentajeDescuento: 25,
-    stock: 10,
-    imagenUrl: "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80",
-    fotosUrls: ["https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80"]
-  }
-];
-
-async function poblarDatosSemillaEnFirebase() {
-  try {
-    mostrarToast("Iniciando carga de 10 fundas en Firebase...");
-    const batch = writeBatch(db);
-    const colRef = collection(db, PRODUCTOS_COLLECTION);
-
-    for (const item of DATOS_SEMILLA) {
-      const nuevoDocRef = doc(colRef);
-      batch.set(nuevoDocRef, item);
-    }
-
-    await batch.commit();
-    mostrarToast("¡Catálogo semilla subido a Firebase con éxito!");
-  } catch (error) {
-    console.error("Error al poblar datos semilla:", error);
-    mostrarToast("Error al poblar: " + error.message);
-  }
-}
-
-btnPoblarSemilla.addEventListener("click", () => {
-  if (confirm("¿Deseas subir el catálogo semilla inicial (10 fundas) a Firebase?")) {
-    poblarDatosSemillaEnFirebase();
-  }
-});
-
-/* ==========================================================================
-   11. CONTROLADORES DE FILTROS Y EVENTOS
+   10. CONTROLADORES DE FILTROS Y EVENTOS
    ========================================================================== */
 inputBusqueda.addEventListener("input", (e) => {
   busquedaFiltro = e.target.value;
@@ -764,7 +759,7 @@ btnLimpiarFiltros.addEventListener("click", () => {
   coloresFiltro.clear();
   inputBusqueda.value = "";
   selectModelo.value = "todos";
-  renderizarColoresDinamicos();
+  actualizarEstilosVisualesColores();
   renderizarCatalogo();
 });
 
@@ -786,7 +781,7 @@ btnModoEmpleado.addEventListener("click", () => {
 });
 
 /* ==========================================================================
-   12. UTILIDADES Y TOAST
+   11. UTILIDADES Y TOAST
    ========================================================================== */
 function mostrarToast(mensaje) {
   const toast = document.getElementById("toast");

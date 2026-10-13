@@ -24,9 +24,12 @@ class AppProductImage extends StatelessWidget {
     this.borderRadius,
   });
 
+  bool get _esAssetLocal => imageUrl.trim().startsWith('assets/');
+
   bool get _esUrlValida {
     final s = imageUrl.trim();
     if (s.isEmpty) return false;
+    if (_esAssetLocal) return true;
     final uri = Uri.tryParse(s);
     return uri != null &&
         (uri.isScheme('http') || uri.isScheme('https')) &&
@@ -39,6 +42,21 @@ class AppProductImage extends StatelessWidget {
 
     if (!_esUrlValida) {
       content = _buildPlaceholder();
+    } else if (_esAssetLocal) {
+      // Si la URL guardada en Firestore aún tiene .png, corregir a .jpg que es el formato real
+      var assetPath = imageUrl.trim();
+      if (assetPath.endsWith('.png')) {
+        assetPath = assetPath.replaceAll(RegExp(r'\.png$', caseSensitive: false), '.jpg');
+      }
+
+      content = Image.asset(
+        assetPath,
+        key: ValueKey(assetPath),
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+      );
     } else {
       final urlLimpia = imageUrl.trim();
       content = Image.network(

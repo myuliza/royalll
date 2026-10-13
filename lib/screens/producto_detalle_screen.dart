@@ -55,8 +55,8 @@ class ProductoDetalleScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        producto.codigoColor.isNotEmpty
-                            ? '${producto.categoria.toUpperCase()} • ${producto.codigoColor.toUpperCase()}'
+                        producto.colorLegible.isNotEmpty
+                            ? '${producto.categoria.toUpperCase()} • ${producto.colorLegible}'
                             : producto.categoria.toUpperCase(),
                         style: const TextStyle(
                           fontSize: 12,

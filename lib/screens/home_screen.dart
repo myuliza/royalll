@@ -6,7 +6,6 @@ import '../widgets/producto_card.dart';
 import 'catalogo_screen.dart';
 import 'carrito_screen.dart';
 import 'faq_screen.dart';
-import 'producto_detalle_screen.dart';
 import 'empleado_login_screen.dart';
 import '../widgets/royal_logo.dart';
 
@@ -83,22 +82,38 @@ class _HomeTab extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           _buildAppBar(context),
-          SliverToBoxAdapter(child: _HeroBanner(onNavigate: onNavigate)),
-          SliverToBoxAdapter(child: _SeccionCategorias(onNavigate: onNavigate)),
-          SliverToBoxAdapter(child: _SeccionPopulares(onNavigate: onNavigate)),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1200),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _HeroBanner(onNavigate: onNavigate),
+                    _SeccionCategorias(onNavigate: onNavigate),
+                    _SeccionPopulares(onNavigate: onNavigate),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   SliverAppBar _buildAppBar(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width >= 800;
+    final logoSize = isWide ? 64.0 : 44.0;
+    final barHeight = isWide ? 80.0 : 64.0;
     return SliverAppBar(
       backgroundColor: AppColors.azul,
       foregroundColor: Colors.white,
       floating: true,
       snap: true,
       centerTitle: true,
+      toolbarHeight: barHeight,
       actions: [
         IconButton(
           icon: const Icon(Icons.lock_outline, size: 20),
@@ -109,7 +124,7 @@ onPressed: () => Navigator.push(
 ),
         ),
       ],
-      title: const RoyalLogo(size: 28, isLight: true),
+      title: RoyalLogo(size: logoSize, isLight: true, imagePath: 'assets/logo royal.png'),
     );
   }
 }
@@ -140,28 +155,26 @@ class _HeroBanner extends StatelessWidget {
         ],
       ),
       child: Stack(
+        clipBehavior: Clip.hardEdge,
         children: [
+          // Imagen de funda iPhone con transparencia gradual (de menos a más transparencia)
           Positioned(
-            right: -30,
-            top: -30,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.dorado.withValues(alpha: 0.12),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 10,
-            bottom: -20,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.dorado.withValues(alpha: 0.08),
+            right: -10,
+            top: -10,
+            bottom: -10,
+            width: 220,
+            child: ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.centerRight,
+                end: Alignment.centerLeft,
+                colors: [Colors.white, Colors.transparent],
+                stops: [0.15, 0.85],
+              ).createShader(bounds),
+              blendMode: BlendMode.dstIn,
+              child: Image.asset(
+                'assets/hero_case.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ),
           ),
@@ -459,25 +472,30 @@ class _SeccionPopulares extends StatelessWidget {
                 );
               }
 
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.68,
-                ),
-                itemCount: productos.length,
-                itemBuilder: (context, i) {
-                  final p = productos[i];
-                  return ProductoCard(
-                    producto: p,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => ProductoDetalleScreen(producto: p)),
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 900;
+                  final isMedium = constraints.maxWidth > 600;
+                  final crossAxisCount = isWide ? 4 : (isMedium ? 3 : 2);
+                  final childAspectRatio = isWide ? 0.75 : 0.68;
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: childAspectRatio,
                     ),
+                    itemCount: productos.length,
+                    itemBuilder: (context, i) {
+                      final p = productos[i];
+                      return ProductoCard(
+                        producto: p,
+                        onTap: () => mostrarModalProductoDetalle(context, p),
+                      );
+                    },
                   );
                 },
               );

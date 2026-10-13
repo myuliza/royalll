@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import '../models/producto.dart';
+import '../providers/carrito_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/producto_card.dart';
 import '../widgets/royal_logo.dart';
+import '../widgets/app_product_image.dart';
 import 'producto_detalle_screen.dart';
 import 'carrito_screen.dart';
 import 'faq_screen.dart';
@@ -46,28 +49,32 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
   final List<String> _categorias = [
     'todas',
     'solido',
+    'silicona',
     'transparente',
-    'personalizada',
+    'cuero',
+    'dualtek',
+    'magsafe',
   ];
 
   final List<String> _modelos = [
     'todos',
-    'iPhone 12',
-    'iPhone 12 Pro',
+    'iPhone 11',
+    'iPhone 11 Pro',
+    'iPhone 11 Pro Max',
     'iPhone 13',
     'iPhone 13 Pro',
-    'iPhone 13 Pro Max',
     'iPhone 14',
-    'iPhone 14 Pro',
-    'iPhone 14 Pro Max',
+    'iPhone 14 Plus',
     'iPhone 15',
-    'iPhone 15 Pro',
+    'iPhone 15 Plus',
     'iPhone 15 Pro Max',
     'iPhone 16',
-    'iPhone 16 Pro',
     'iPhone 16 Pro Max',
+    'iPhone 17',
+    'iPhone 17 Pro',
+    'iPhone 17 Pro Max',
+    'iPhone 18 Pro Max',
   ];
-
 
   @override
   void dispose() {
@@ -88,10 +95,229 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     }
   }
 
-  void _abrirDetalle(Producto p) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => ProductoDetalleScreen(producto: p)),
+  /// Popup / Modal centrado en Modo Usuario con cierre automático al agregar al carrito
+  void _mostrarModalDetalle(Producto p) {
+    final tieneDescuento = p.enDescuento && p.porcentajeDescuento > 0;
+    final swatchColor = _parseHex(p.colorHex);
+    final agotado = p.stock <= 0;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.60),
+      builder: (dialogCtx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Barra superior con botón de cerrar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 8, 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.fondo,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        p.colorLegible.isNotEmpty
+                            ? '${p.categoria.toUpperCase()} • ${p.colorLegible}'
+                            : p.categoria.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                          color: AppColors.textoSecundario,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      tooltip: 'Cerrar',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(dialogCtx),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Imagen compacta
+              Container(
+                height: 160,
+                color: const Color(0xFFF9FAFB),
+                padding: const EdgeInsets.all(10),
+                child: AppProductImage(
+                  imageUrl: p.fotoPrincipalUrl,
+                  fit: BoxFit.contain,
+                ),
+              ),
+
+              // Información del producto
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.nombre,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textoPrincipal,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Precios
+                    Row(
+                      children: [
+                        Text(
+                          p.precioFinalFormateado,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: tieneDescuento ? AppColors.rojoDescuento : AppColors.azul,
+                          ),
+                        ),
+                        if (tieneDescuento) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            p.precioOriginalFormateado,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              decoration: TextDecoration.lineThrough,
+                              color: AppColors.textoAtenuado,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppColors.rojoDescuento,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text(
+                              '-${p.porcentajeDescuento}% OFF',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Color y Stock
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: swatchColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black26),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _nombreColorLegible(p.colorHex),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: agotado
+                                ? Colors.red.withValues(alpha: 0.12)
+                                : AppColors.verdeStock.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            agotado ? 'Agotado' : 'Stock: ${p.stock}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: agotado ? Colors.red : AppColors.verdeStock,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add_shopping_cart, size: 16),
+                        label: Text(agotado ? 'Agotado' : 'Agregar al carrito'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: agotado ? Colors.grey : AppColors.dorado,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: agotado
+                            ? null
+                            : () {
+                                final carrito = context.read<CarritoProvider>();
+                                final agregado = carrito.agregar(p);
+                                Navigator.pop(dialogCtx);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      agregado
+                                          ? '${p.nombre} agregado al carrito'
+                                          : 'Stock agotado o límite alcanzado para ${p.nombre}',
+                                    ),
+                                    backgroundColor: agregado ? AppColors.azul : Colors.orange,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.info_outline, size: 14),
+                        label: const Text('Ver detalle completo', style: TextStyle(fontSize: 12)),
+                        onPressed: () {
+                          Navigator.pop(dialogCtx);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProductoDetalleScreen(producto: p),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -99,7 +325,6 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.fondo,
-      appBar: _buildAppBar(context),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('productos').snapshots(),
         builder: (context, snapshot) {
@@ -148,11 +373,11 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
               final matchModelos = p.modelosCompatibles.any((m) => m.toLowerCase().contains(q));
               final matchCategoria = p.categoria.toLowerCase().contains(q);
 
-              // Búsqueda inteligente por familias de colores
+              // Búsqueda inteligente por familias de colores y estilos
               bool matchFamiliaColor = false;
               if (q == 'titanio' || q == 'gris') {
                 matchFamiliaColor = p.colorHex.toUpperCase() == '#64748B';
-              } else if (q == 'dorado' || q == 'beige' || q == 'oro') {
+              } else if (q == 'dorado' || q == 'beige' || q == 'oro' || q == 'floral' || q == 'flores') {
                 matchFamiliaColor = p.colorHex.toUpperCase() == '#C9A227';
               } else if (q == 'morado' || q == 'purpura' || q == 'púrpura') {
                 matchFamiliaColor = p.colorHex.toUpperCase() == '#7E22CE';
@@ -160,12 +385,25 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                 matchFamiliaColor = p.colorHex.toUpperCase() == '#16A34A';
               } else if (q == 'rosa' || q == 'pink') {
                 matchFamiliaColor = p.colorHex.toUpperCase() == '#F472B6';
+              } else if (q == 'cyan' || q == 'celeste' || q == 'royale' || q == 'mariposa' || q == 'corona') {
+                matchFamiliaColor = p.colorHex.toUpperCase() == '#00B4D8';
+              } else if (q == 'cyber' || q == 'holografico' || q == 'holográfico' || q == 'anillo') {
+                matchFamiliaColor = p.colorHex.toUpperCase() == '#0284C7';
+              } else if (q == 'neon' || q == 'neón' || q == 'ondas' || q == 'fuego') {
+                matchFamiliaColor = p.colorHex.toUpperCase() == '#FF5722';
+              } else if (q == 'botanical' || q == 'dark' || q == 'ronell') {
+                matchFamiliaColor = p.colorHex.toUpperCase() == '#334155';
               } else if (q == 'azul') {
-                matchFamiliaColor = p.colorHex.toUpperCase() == '#0B2545' || p.colorHex.toUpperCase() == '#13315C';
+                matchFamiliaColor = p.colorHex.toUpperCase() == '#0B2545' ||
+                    p.colorHex.toUpperCase() == '#13315C' ||
+                    p.colorHex.toUpperCase() == '#00B4D8' ||
+                    p.colorHex.toUpperCase() == '#0284C7';
               } else if (q == 'rojo') {
                 matchFamiliaColor = p.colorHex.toUpperCase() == '#DC2626';
-              } else if (q == 'blanco' || q == 'transparente') {
-                matchFamiliaColor = p.colorHex.toUpperCase() == '#FFFFFF' || p.colorHex.toUpperCase() == '#E5E7EB';
+              } else if (q == 'transparente' || q == 'clear' || q == 'tpu') {
+                matchFamiliaColor = p.colorHex.toUpperCase() == '#E5E7EB' || p.categoria == 'transparente';
+              } else if (q == 'blanco') {
+                matchFamiliaColor = p.colorHex.toUpperCase() == '#FFFFFF';
               } else if (q == 'negro') {
                 matchFamiliaColor = p.colorHex.toUpperCase() == '#000000';
               }
@@ -177,34 +415,61 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
             return true;
           }).toList();
 
-          return Column(
-            children: [
-              _buildFiltros(conteoColores),
-              Expanded(
-                child: productosFiltrados.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No hay fundas disponibles para estos filtros.',
-                          style: TextStyle(color: AppColors.textoSecundario),
-                        ),
-                      )
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          childAspectRatio: 0.68,
-                        ),
-                        itemCount: productosFiltrados.length,
-                        itemBuilder: (context, i) {
-                          final p = productosFiltrados[i];
-                          return ProductoCard(
-                            producto: p,
-                            onTap: () => _abrirDetalle(p),
-                          );
-                        },
-                      ),
+          return CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(context),
+              // Barra de filtros con fondo oscuro que se desplaza hacia arriba al hacer scroll
+              SliverToBoxAdapter(
+                child: _buildFiltros(conteoColores),
+              ),
+              // Grilla de productos limpia y centrada para PC
+              SliverToBoxAdapter(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: productosFiltrados.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 60),
+                            child: Center(
+                              child: Text(
+                                'No hay fundas disponibles para estos filtros.',
+                                style: TextStyle(color: AppColors.textoSecundario),
+                              ),
+                            ),
+                          )
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isWide = constraints.maxWidth > 900;
+                              final isMedium = constraints.maxWidth > 600;
+                              final crossAxisCount = isWide ? 4 : (isMedium ? 3 : 2);
+                              final childAspectRatio = isWide ? 0.75 : 0.68;
+
+                              return GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(16),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  mainAxisSpacing: 16,
+                                  crossAxisSpacing: 16,
+                                  childAspectRatio: childAspectRatio,
+                                ),
+                                itemCount: productosFiltrados.length,
+                                itemBuilder: (context, i) {
+                                  final p = productosFiltrados[i];
+                                  return ProductoCard(
+                                    producto: p,
+                                    onTap: () => _mostrarModalDetalle(p),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 32),
               ),
             ],
           );
@@ -213,16 +478,19 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
+  SliverAppBar _buildSliverAppBar(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width >= 800;
+    final logoSize = isWide ? 64.0 : 44.0;
+    final barHeight = isWide ? 80.0 : 64.0;
+    return SliverAppBar(
       backgroundColor: AppColors.azul,
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(18)),
-      ),
-      title: const RoyalLogo(size: 26, isLight: true),
+      floating: true,
+      snap: true,
+      toolbarHeight: barHeight,
+      title: RoyalLogo(size: logoSize, isLight: true, imagePath: 'assets/logo royal.png'),
       actions: [
         IconButton(
           icon: const Icon(Icons.help_outline),
@@ -417,11 +685,17 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                     label: Text(
                       c == 'solido'
                           ? 'Sólido'
-                          : c == 'transparente'
-                              ? 'Transparente'
-                              : c == 'personalizada'
-                                  ? 'Personalizada'
-                                  : 'Todas',
+                          : c == 'silicona'
+                              ? 'Silicona'
+                              : c == 'transparente'
+                                  ? 'Transparente'
+                                  : c == 'cuero'
+                                      ? 'Cuero'
+                                      : c == 'dualtek'
+                                          ? 'DualTek'
+                                          : c == 'magsafe'
+                                              ? 'MagSafe'
+                                              : 'Todas',
                     ),
                     selected: selected,
                     showCheckmark: false,
@@ -429,7 +703,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                       if (states.contains(WidgetState.selected)) {
                         return AppColors.dorado;
                       }
-                      return const Color(0xFF13315C);
+                      return AppColors.azulClaro;
                     }),
                     side: BorderSide(
                       color: selected ? AppColors.dorado : Colors.white.withValues(alpha: 0.25),
