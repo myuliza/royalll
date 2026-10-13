@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../theme/breakpoints.dart';
 import '../utils/visual.dart';
 import '../widgets/app_product_image.dart';
+import '../widgets/aviso_flotante.dart';
 import 'catalogo_screen.dart';
 
 /// Abre el detalle de un producto: diálogo de dos columnas en escritorio/tablet
@@ -30,29 +31,25 @@ void abrirDetalleProducto(BuildContext context, Producto producto) {
 /// (para seguir comprando) y avisa con un SnackBar con acceso al carrito.
 void _agregarAlCarrito(BuildContext context, Producto producto) {
   final exito = context.read<CarritoProvider>().agregar(producto);
-  // Capturados antes del pop: el SnackBar sobrevive a esta pantalla
-  final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
   final router = GoRouter.maybeOf(context);
-  messenger.hideCurrentSnackBar();
   if (exito) {
     HapticFeedback.lightImpact();
+    // Aviso que se cierra solo y no tapa los botones del carrito (reemplaza al anterior)
+    mostrarAviso(
+      context,
+      '${producto.nombre} agregado al carrito',
+      accion: router == null ? null : 'Ver carrito',
+      onAccion: router == null ? null : () => router.go('/carrito'),
+    );
     // Cierre automático al agregar, para seguir comprando
     navigator.pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('${producto.nombre} agregado al carrito'),
-        action: router == null
-            ? null
-            : SnackBarAction(label: 'Ver carrito', onPressed: () => router.go('/carrito')),
-      ),
-    );
   } else {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('No es posible agregar más: stock máximo alcanzado.'),
-        backgroundColor: Colors.orange,
-      ),
+    mostrarAviso(
+      context,
+      'No es posible agregar más: stock máximo alcanzado.',
+      icono: Icons.warning_amber_rounded,
+      color: Colors.orange,
     );
   }
 }

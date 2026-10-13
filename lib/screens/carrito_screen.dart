@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../theme/breakpoints.dart';
 import '../utils/formatters.dart';
 import '../widgets/app_product_image.dart';
+import '../widgets/aviso_flotante.dart';
 import '../widgets/ui/ui.dart';
 import 'checkout_screen.dart';
 
@@ -53,9 +54,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
       carrito.aplicarCupon(cupon);
       _cuponController.clear();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Código ${cupon.codigo} aplicado: -${formatPrice(carrito.descuento)}')),
-        );
+        mostrarAviso(context, 'Código ${cupon.codigo} aplicado: -${formatPrice(carrito.descuento)}');
       }
     } catch (e) {
       setState(() => _errorCupon = 'No se pudo validar el código. Revisá tu conexión.');
@@ -69,21 +68,19 @@ class _CarritoScreenState extends State<CarritoScreen> {
     final cantidad = item.cantidad;
     carrito.quitar(producto.id);
 
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('${producto.nombre} eliminado del carrito'),
-        action: SnackBarAction(
-          label: 'Deshacer',
-          onPressed: () {
-            carrito.agregar(producto);
-            if (cantidad > 1) {
-              carrito.actualizarCantidad(producto.id, cantidad);
-            }
-          },
-        ),
-      ),
+    mostrarAviso(
+      context,
+      '${producto.nombre} eliminado del carrito',
+      icono: Icons.delete_outline_rounded,
+      color: AppColors.doradoClaro,
+      duracion: const Duration(seconds: 3),
+      accion: 'Deshacer',
+      onAccion: () {
+        carrito.agregar(producto);
+        if (cantidad > 1) {
+          carrito.actualizarCantidad(producto.id, cantidad);
+        }
+      },
     );
   }
 
@@ -98,11 +95,11 @@ class _CarritoScreenState extends State<CarritoScreen> {
   void _sumar(BuildContext context, CarritoProvider carrito, ItemCarrito item) {
     final ok = carrito.actualizarCantidad(item.producto.id, item.cantidad + 1);
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Stock máximo de "${item.producto.nombre}" alcanzado (${item.producto.stock} disponibles).'),
-          duration: const Duration(seconds: 2),
-        ),
+      mostrarAviso(
+        context,
+        'Stock máximo de "${item.producto.nombre}" alcanzado (${item.producto.stock} disponibles).',
+        icono: Icons.warning_amber_rounded,
+        color: Colors.orange,
       );
     }
   }

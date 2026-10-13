@@ -201,4 +201,51 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  for (final tam in [const Size(1366, 768), const Size(390, 844)]) {
+    testWidgets('Aviso "agregado al carrito" ${tam.width.toInt()}: se cierra solo, no se acumula y no tapa el pedido',
+        (tester) async {
+      await _montar(tester, '/carrito', tam, ThemeMode.light, conCarrito: true);
+      // El primer ítem tiene 2 de 8 en stock: 6 toques llegan al máximo y los siguientes muestran el aviso
+      for (var i = 0; i < 8; i++) {
+        await tester.tap(find.byTooltip('Sumar uno').first);
+        await tester.pump(const Duration(milliseconds: 150));
+      }
+      expect(find.textContaining('Stock máximo'), findsOneWidget); // uno solo, sin acumular
+
+      final aviso = tester.getRect(find.textContaining('Stock máximo'));
+      final boton = tester.getRect(find.text('Continuar al pedido'));
+      expect(aviso.overlaps(boton), isFalse);
+      for (final e in find.byTooltip('Sumar uno').evaluate()) {
+        expect(aviso.overlaps(tester.getRect(find.byWidget(e.widget))), isFalse);
+      }
+      if (tam.width >= 600) {
+        // Dentro del área de contenido: a la derecha de la barra lateral
+        expect(aviso.left, greaterThan(tester.getRect(find.byType(NavigationRail)).right));
+      }
+
+      // El pedido se puede continuar inmediatamente
+      await tester.tap(find.text('Continuar al pedido'));
+      await avanzar(tester, 4);
+      expect(find.text('Confirmar pedido'), findsOneWidget);
+
+      // Se cierra solo
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.textContaining('Stock máximo'), findsNothing);
+    });
+  }
+
+  testWidgets('Agregar desde el detalle muestra el aviso y se cierra solo', (tester) async {
+    await _montar(tester, '/catalogo', const Size(1366, 768), ThemeMode.light);
+    await tester.tap(find.text('Funda iPhone 11').first);
+    await avanzar(tester, 8);
+    await tester.tap(find.text('Agregar al carrito'));
+    await avanzar(tester, 4);
+    expect(find.text('Funda iPhone 11 agregado al carrito'), findsOneWidget);
+    expect(find.text('Ver carrito'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Funda iPhone 11 agregado al carrito'), findsNothing);
+  });
 }
