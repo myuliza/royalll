@@ -248,4 +248,20 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Funda iPhone 11 agregado al carrito'), findsNothing);
   });
+
+  testWidgets('FAQ: crédito al final del contenido, centrado y con el estilo de las categorías', (tester) async {
+    await _montar(tester, '/faq', const Size(1366, 768), ThemeMode.light);
+    final credito = find.text('Software desarrollado por Nexus Bye');
+    await tester.scrollUntilVisible(credito, 300, scrollable: find.byType(Scrollable).last);
+    final estilo = tester.widget<Text>(credito).style!;
+    final categoria = tester.widget<Text>(find.text('Envíos')).style!;
+    expect(estilo.fontSize, categoria.fontSize);
+    expect(estilo.color, categoria.color);
+    expect(estilo.fontFamily, categoria.fontFamily);
+    expect(estilo.fontWeight, categoria.fontWeight);
+    // Debajo del último elemento (tarjeta de WhatsApp) y centrado en el contenido
+    expect(tester.getRect(credito).top, greaterThan(tester.getRect(find.text('Contactar por WhatsApp')).bottom));
+    final contenido = tester.getRect(find.text('Preguntas frecuentes'));
+    expect((tester.getRect(credito).center.dx - (contenido.left + 450)).abs(), lessThan(2));
+  });
 }

@@ -220,6 +220,13 @@ class _FaqScreenState extends State<FaqScreen> {
                         ],
                       ),
                     ),
+                    // Crédito al final del contenido (no es un pie fijo de pantalla)
+                    const SizedBox(height: AppSpacing.xl),
+                    Text(
+                      'Software desarrollado por Nexus Bye',
+                      textAlign: TextAlign.center,
+                      style: _TarjetaFaq.estiloCategoria(context),
+                    ),
                   ],
                 ),
               ),
@@ -234,6 +241,10 @@ class _FaqScreenState extends State<FaqScreen> {
 class _TarjetaFaq extends StatelessWidget {
   final Map<String, dynamic> item;
   const _TarjetaFaq({required this.item});
+
+  /// Estilo de la categoría de cada pregunta (Pagos, Envíos, Garantía, Compatibilidad…).
+  static TextStyle estiloCategoria(BuildContext context) =>
+      TextStyle(fontSize: 11, color: context.royal.textoSecundario);
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +287,7 @@ class _TarjetaFaq extends StatelessWidget {
         ),
         subtitle: Text(
           item['categoria'] ?? 'Información',
-          style: TextStyle(fontSize: 11, color: royal.textoSecundario),
+          style: estiloCategoria(context),
         ),
         children: [
           Padding(
