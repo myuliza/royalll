@@ -52,25 +52,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 const Text('Forma de pago', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ValueListenableBuilder<String>(
                   valueListenable: _formaPago,
-                  builder: (context, value, _) => Column(
-                    children: [
-                      RadioListTile<String>(
-                        value: 'efectivo',
-                        groupValue: value,
-                        title: const Text('Efectivo'),
-                        onChanged: (v) {
-                          if (v != null) _formaPago.value = v;
-                        },
-                      ),
-                      RadioListTile<String>(
-                        value: 'transferencia',
-                        groupValue: value,
-                        title: const Text('Transferencia'),
-                        onChanged: (v) {
-                          if (v != null) _formaPago.value = v;
-                        },
-                      ),
-                    ],
+                  builder: (context, value, _) => RadioGroup<String>(
+                    groupValue: value,
+                    onChanged: (v) {
+                      if (v != null) _formaPago.value = v;
+                    },
+                    child: const Column(
+                      children: [
+                        RadioListTile<String>(
+                          value: 'efectivo',
+                          title: Text('Efectivo'),
+                        ),
+                        RadioListTile<String>(
+                          value: 'transferencia',
+                          title: Text('Transferencia'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

@@ -76,8 +76,6 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
   }
 
   String _nombreColorLegible(String hex) => CatalogoScreen.nombreColorLegible(hex);
-    return h;
-  }
 
   Color _parseHex(String hex) {
     try {
